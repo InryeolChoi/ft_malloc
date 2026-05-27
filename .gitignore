@@ -1,0 +1,48 @@
+# macOS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Linux and filesystem artifacts
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.bak
+*.tmp
+
+# C build outputs
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.d
+
+# Executables and build directories
+a.out
+*.out
+*.exe
+build/
+dist/
+bin/
+obj/
+
+# Debug and runtime artifacts
+*.dSYM/
+core
+core.*
+vgcore.*
+*.log
