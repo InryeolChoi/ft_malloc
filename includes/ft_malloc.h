@@ -20,17 +20,17 @@ typedef struct	s_box
 	void      		*start;			// 주소
 	size_t    		size;			// 사이즈
 	t_zone_type		type;			// 사이즈 분류
-	struct s_block	*first_block;	// 처음 블록
+	struct s_tag	*first_tag;		// 처음 태그
 	struct s_box	*next_box;		// 다음 박스
 }	t_box;
 
-typedef struct	s_block
+typedef struct	s_tag
 {
-	size_t			size;		// 블록의 크기
-	int				is_free;	// 블록의 사용여부 결정
-	struct s_block	*next;		// 다음 블록
-	struct s_block	*prev;		// 그 전 블록
-}	t_block;
+	size_t			tagsize;	// 태그의 크기
+	int				is_free;	// 태그의 사용여부 결정
+	struct s_tag	*next;		// 다음 태그
+	struct s_tag	*prev;		// 그 전 태그
+}	t_tag;
 
 void	*malloc(size_t size);
 void	free();
