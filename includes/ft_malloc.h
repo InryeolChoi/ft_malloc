@@ -26,15 +26,24 @@ typedef struct	s_box
 
 typedef struct	s_tag
 {
-	size_t			tagsize;	// 태그의 크기
-	int				is_free;	// 태그의 사용여부 결정
-	struct s_tag	*next;		// 다음 태그
-	struct s_tag	*prev;		// 그 전 태그
+	size_t			user_area_size;	// user area 크기
+	int				is_free;		// 태그의 사용여부 결정
+	struct s_tag	*next_tag;		// 다음 태그
+	struct s_tag	*prev_tag;		// 그 전 태그
+	size_t			magic;			// 태그 무결성 체크용
 }	t_tag;
 
+typedef struct s_malloc_state
+{
+    t_box *tiny_boxes;
+    t_box *small_boxes;
+    t_box *large_boxes;
+}   t_malloc_state;
+
+
 void	*malloc(size_t size);
-void	free();
-void	*realloc();
+void	free(void *ptr);
+void	*realloc(void *ptr, size_t size);
 void	show_alloc_mem(void);
 
 #endif
