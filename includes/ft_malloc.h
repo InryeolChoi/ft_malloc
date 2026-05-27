@@ -33,7 +33,7 @@ typedef struct	s_tag
 	size_t			magic;			// 태그 무결성 체크용
 }	t_tag;
 
-typedef struct s_malloc_state
+typedef struct s_malloc_state	// 사이즈 확인용
 {
     t_box *tiny_boxes;
     t_box *small_boxes;
