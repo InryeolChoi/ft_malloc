@@ -40,7 +40,7 @@ typedef struct s_malloc_state	// 사이즈 확인용
     t_box *large_boxes;
 }   t_malloc_state;
 
-t_malloc_state g_malloc;			// 전역변수
+extern t_malloc_state g_malloc;
 
 void	*malloc(size_t size);
 void	free(void *ptr);
