@@ -1,5 +1,4 @@
 {
-	"42-c-format.executable": "/Users/inchoi/ft_malloc/.venv/bin/c_formatter_42",
 	"editor.detectIndentation": false,
 	"editor.insertSpaces": false,
 	"editor.rulers": [
@@ -12,7 +11,7 @@
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,
 	"[c]": {
-		"editor.defaultFormatter": "keyhr.42-c-format",
-		"editor.formatOnSave": true
+		"editor.defaultFormatter": null,
+		"editor.formatOnSave": false
 	}
 }

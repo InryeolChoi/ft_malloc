@@ -42,6 +42,9 @@ typedef struct s_malloc_state	// 사이즈 확인용
 
 extern t_malloc_state g_malloc;
 
+t_zone_type	get_zone_type(size_t size);
+t_box		**get_box_list(t_zone_type type);
+
 void	*malloc(size_t size);
 void	free(void *ptr);
 void	*realloc(void *ptr, size_t size);
