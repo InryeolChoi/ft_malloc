@@ -1,4 +1,4 @@
 CompileFlags:
   Add:
-    - "-I./includes"
-    - "-I./libft"
+    - "-I/Users/inchoi/ft_malloc/includes"
+    - "-I/Users/inchoi/ft_malloc/libft"
