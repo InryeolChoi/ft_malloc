@@ -44,6 +44,9 @@ extern t_malloc_state g_malloc;
 
 t_zone_type	get_zone_type(size_t size);
 t_box		**get_box_list(t_zone_type type);
+int			is_ptr_in_box(t_box *box, void *ptr);
+t_box		*find_box(void *ptr);
+t_box		*find_box_in_list(t_box *box_list, void *ptr);
 
 void	*malloc(size_t size);
 void	free(void *ptr);
