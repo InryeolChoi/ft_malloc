@@ -1,6 +1,5 @@
 #include "ft_malloc.h"
 
-
 void	*tag_to_user(t_tag *tag)
 {
 	return (char *)tag + sizeof(*tag);
