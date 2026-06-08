@@ -18,6 +18,33 @@ t_box	**get_box_list(t_zone_type type)
 	return (&g_malloc.large_boxes);
 }
 
+t_box	*find_box_pool(void *ptr)
+{
+	t_box	*box;
+
+	box = find_box_list(g_malloc.tiny_boxes, ptr);
+	if (box != NULL)
+		return (box);
+	box = find_box_list(g_malloc.small_boxes, ptr);
+	if (box != NULL)
+		return (box);
+	box = find_box_list(g_malloc.large_boxes, ptr);
+	if (box != NULL)
+		return (box);
+	return (NULL);
+}
+
+t_box	*find_box_list(t_box *box_list, void *ptr)
+{
+	while (box_list != NULL)
+	{
+		if (is_ptr_in_box(box_list, ptr))
+			return (box_list);
+		box_list = box_list->next_box;
+	}
+	return (NULL);
+}
+
 int	is_ptr_in_box(t_box *box, void *ptr)
 {
 	char	*newptr;
@@ -30,31 +57,4 @@ int	is_ptr_in_box(t_box *box, void *ptr)
 	if (start <= newptr && newptr < end)
 		return (1);
 	return (0);
-}
-
-t_box	*find_box(void *ptr)
-{
-	t_box	*box;
-
-	box = find_box_in_list(g_malloc.tiny_boxes, ptr);
-	if (box != NULL)
-		return (box);
-	box = find_box_in_list(g_malloc.small_boxes, ptr);
-	if (box != NULL)
-		return (box);
-	box = find_box_in_list(g_malloc.large_boxes, ptr);
-	if (box != NULL)
-		return (box);
-	return (NULL);
-}
-
-t_box	*find_box_in_list(t_box *box_list, void *ptr)
-{
-	while (box_list != NULL)
-	{
-		if (is_ptr_in_box(box_list, ptr))
-			return (box_list);
-		box_list = box_list->next_box;
-	}
-	return (NULL);
 }

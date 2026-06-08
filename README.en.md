@@ -8,17 +8,19 @@
 - Manage memory areas by TINY, SMALL, and LARGE size classes.
 - Track allocation state with metadata tags placed before user areas.
 - Include `libft` as the project utility library allowed by the assignment.
+- Separate pointer validation, area lookup, and tag lookup as the foundation for `free` and `realloc`.
 
 ## Current Structure
 
 - `includes/ft_malloc.h`: Shared types, constants, global state, and function prototypes
-- `src/malloc.c`: Global malloc state and the starting point for `malloc`
-- `src/free.c`: Placeholder for the `free` implementation
-- `src/realloc.c`: Starting point for the `realloc` implementation
+- `src/malloc.c`: Global malloc state and the current `malloc` stub
+- `src/free.c`: Basic `free` flow that finds the owning box/tag and marks the tag as free
+- `src/realloc.c`: Current `realloc` stub
 - `src/show_alloc_mem.c`: Placeholder for allocation-state output
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
-- `src/tags.c`: Helpers for converting between tag addresses and user-area addresses
+- `src/tags.c`: Helpers for converting between tag addresses and user-area addresses, plus tag lookup inside a box
 - `libft/`: Copied libft dependency allowed by the assignment
+- `.clangd`: Include path configuration for `includes/` and `libft/`
 
 ## Memory Model
 
@@ -30,8 +32,19 @@ The current design is centered around `box` and `tag` metadata.
 - `TINY_MAX`: Requests up to 128 bytes are classified as TINY.
 - `SMALL_MAX`: Requests up to 1024 bytes are classified as SMALL.
 
+## Implemented So Far
+
+- Global `g_malloc` state initialization
+- `ZONE_TINY`, `ZONE_SMALL`, and `ZONE_LARGE` classification by requested size
+- Access to the box list for a given zone type
+- Pointer range checks against a box
+- Lookup of the box that owns a user pointer across the whole box pool
+- Address conversion between a tag and its user area
+- Lookup of the tag that corresponds to a user pointer inside a box
+- Basic `free(ptr)` behavior that marks a valid tag as free
+
 ## Status
 
-The repository setup, `libft` import, header design, `src/` file split, and part of the box/tag helper implementation are now in place.
+The repository setup, `libft` import, header design, `src/` file split, box/tag lookup helpers, and part of the basic `free` flow are now in place.
 
-The full allocation and deallocation flow is still in progress. Next steps include mmap area creation, free-tag lookup, tag splitting and coalescing, and completing `malloc`, `free`, `realloc`, and `show_alloc_mem`.
+The full allocation flow and coalescing after free are still in progress. Next steps include mmap area creation, free-tag lookup, tag splitting and coalescing, and completing `malloc`, `free`, `realloc`, and `show_alloc_mem`.

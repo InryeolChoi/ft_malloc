@@ -7,7 +7,7 @@ void	free(void *ptr)
 
 	if (ptr == NULL)
 		return ;
-	box = find_box(ptr);
+	box = find_box_pool(ptr);
 	if (box == NULL)
 		return ;
 	tag = find_tag_in_box(box, ptr);
