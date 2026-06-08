@@ -42,12 +42,16 @@ typedef struct s_malloc_state
 
 extern t_malloc_state	g_malloc;
 
+size_t					get_basic_page_size(void);
 t_zone_type				get_zone_type(size_t size);
 t_box					**get_box_list(t_zone_type type);
-int						is_ptr_in_box(t_box *box, void *ptr);
 t_box					*find_box_pool(void *ptr);
 t_box					*find_box_list(t_box *box_list, void *ptr);
 t_tag					*find_tag_in_box(t_box *box, void *ptr);
+int						is_ptr_in_box(t_box *box, void *ptr);
+size_t					get_box_size(t_zone_type type, size_t user_size, size_t page);
+size_t					will_add_overflow(size_t num1, size_t num2);
+size_t					will_multi_overflow(size_t num1, size_t num2);
 
 void					*malloc(size_t size);
 void					free(void *ptr);
