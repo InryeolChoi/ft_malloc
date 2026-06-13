@@ -12,12 +12,12 @@ void	*malloc(size_t size)
 	if (size == 0)
 		size = 1;
 	type = get_zone_type(size);
-	boxsize = get_box_size(type, size, get_basic_page_size());
+	if ((boxsize = get_box_size(type, size, get_basic_page_size());
 	if ((tag = find_available_tag(get_box_list(type), size)) == NULL)
 	{
 		box = create_box(type, boxsize);
 		if (box == NULL)
-			return 
+			return NULL;
 		// 새 box를 기존 box list 리스트 3가지 중 하나에 넣기
 
 		// box에서 tag 발라내기
