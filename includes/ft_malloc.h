@@ -53,6 +53,7 @@ int				is_ptr_in_box(t_box *box, void *ptr);
 size_t			get_box_size(t_zone_type type, size_t user_size, size_t page);
 size_t			will_add_overflow(size_t num1, size_t num2);
 size_t			will_multi_overflow(size_t num1, size_t num2);
+void			*tag_to_user(t_tag *tag);
 
 void	*malloc(size_t size);
 void	free(void *ptr);
