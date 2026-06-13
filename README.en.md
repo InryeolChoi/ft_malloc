@@ -13,12 +13,13 @@
 ## Current Structure
 
 - `includes/ft_malloc.h`: Shared types, constants, global state, and function prototypes
-- `src/malloc.c`: Global malloc state and the current `malloc` stub
+- `src/malloc.c`: Global malloc state, box creation, free-tag lookup, and tag allocation/splitting groundwork for `malloc`
 - `src/free.c`: Basic `free` flow that finds the owning box/tag and marks the tag as free
 - `src/realloc.c`: Current `realloc` stub
 - `src/show_alloc_mem.c`: Placeholder for allocation-state output
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
 - `src/tags.c`: Helpers for converting between tag addresses and user-area addresses, plus tag lookup inside a box
+- `src/utils.c`: Helpers for page-size lookup, box-size calculation, and overflow-safe arithmetic
 - `libft/`: Copied libft dependency allowed by the assignment
 - `.clangd`: Include path configuration for `includes/` and `libft/`
 
@@ -29,6 +30,7 @@ The current design is centered around `box` and `tag` metadata.
 - `t_box`: Represents a memory area obtained with mmap.
 - `t_tag`: Metadata stored before the user-visible allocation area.
 - `t_malloc_state`: Global state that tracks TINY, SMALL, and LARGE box lists.
+- `TAG_MAGIC`: Magic value used to validate tag metadata.
 - `TINY_MAX`: Requests up to 128 bytes are classified as TINY.
 - `SMALL_MAX`: Requests up to 1024 bytes are classified as SMALL.
 
@@ -42,9 +44,16 @@ The current design is centered around `box` and `tag` metadata.
 - Address conversion between a tag and its user area
 - Lookup of the tag that corresponds to a user pointer inside a box
 - Basic `free(ptr)` behavior that marks a valid tag as free
+- OS-specific page-size lookup with a fallback
+- Overflow-safe addition and multiplication helpers
+- mmap box-size calculation based on request size and zone type
+- mmap-backed box creation with an initial free tag
+- Flow for connecting a new box to the global box list
+- Lookup for reusable free tags
+- Tag allocation with splitting when enough space remains
 
 ## Status
 
-The repository setup, `libft` import, header design, `src/` file split, box/tag lookup helpers, and part of the basic `free` flow are now in place.
+The repository setup, `libft` import, header design, `src/` file split, box/tag lookup helpers, the basic `free` flow, and an initial `malloc` box/tag allocation path are now in place.
 
-The full allocation flow and coalescing after free are still in progress. Next steps include mmap area creation, free-tag lookup, tag splitting and coalescing, and completing `malloc`, `free`, `realloc`, and `show_alloc_mem`.
+The full allocator behavior is still in progress. Next steps include tightening new-box linking rules, hardening tag split edge cases, coalescing free tags, cleaning up prototypes, and completing `malloc`, `free`, `realloc`, and `show_alloc_mem`.
