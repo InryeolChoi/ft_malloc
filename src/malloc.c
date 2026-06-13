@@ -12,7 +12,8 @@ void	*malloc(size_t size)
 	if (size == 0)
 		size = 1;
 	type = get_zone_type(size);
-	if ((boxsize = get_box_size(type, size, get_basic_page_size());
+	if ((boxsize = get_box_size(type, size, get_basic_page_size())))
+		return NULL;
 	if ((tag = find_available_tag(get_box_list(type), size)) == NULL)
 	{
 		box = create_box(type, boxsize);
@@ -32,8 +33,7 @@ size_t	get_box_size(t_zone_type type, size_t user_size, size_t page)
 	size_t	max_alloc;
 	size_t	multi_num;
 
-	max_alloc = (type == ZONE_LARGE ? user_size :
-		(type == ZONE_SMALL ? SMALL_MAX : TINY_MAX));
+	max_alloc = (type == ZONE_LARGE ? user_size : (type == ZONE_SMALL ? SMALL_MAX : TINY_MAX));
 	multi_num = (type == ZONE_LARGE ? 1 : 100);
 
 	if ((boxsize = will_add_overflow(sizeof(t_tag), max_alloc)) == 0)
