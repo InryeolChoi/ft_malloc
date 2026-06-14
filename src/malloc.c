@@ -4,44 +4,36 @@ t_malloc_state	g_malloc = {0};
 
 void	*malloc(size_t size)
 {
-	size_t		boxsize;
-	t_zone_type	type;
-	t_tag		*tag;
+	t_tag	*tag;
 
 	if (size == 0)
 		size = 1;
-	type = get_zone_type(size);
-	boxsize = get_box_size(type, size, get_basic_page_size());
-	if (boxsize == 0)
-		return NULL;
-	tag = find_tag(type, size, boxsize);
+	tag = get_tag(size);
 	if (tag == NULL)
 		return NULL;
 	return tag_to_user(tag);
 }
 
-t_tag	*find_tag(t_zone_type type, size_t size, size_t boxsize)
+t_tag	*get_tag(size_t size)
 {
-	t_box	*box;
-	t_tag	*tag;
+	size_t		boxsize;
+	t_zone_type	type;
+	t_tag		*tag;
 
-	tag = find_available_tag(get_box_list(type), size);
+	type = get_zone_type(size);
+	boxsize = get_box_size(type, size, get_basic_page_size());
+	if (boxsize == 0)
+		return NULL;
+	tag = find_tag(get_box_list(type), size);
 	if (tag == NULL)
-	{
-		box = create_box(type, boxsize);
-		if (box == NULL)
-			return NULL;
-		connect_to_boxlist(box);
-		tag = box->first_tag;
-	}
-	tag = allocate_tag(tag, size);
+		tag = create_tag(type, boxsize);
+	tag = set_tag(tag, size);
 	if (tag == NULL)
 		return NULL;
 	return tag;
 }
 
-
-t_tag	*find_available_tag(t_box **box_list, size_t size)
+t_tag	*find_tag(t_box **box_list, size_t size)
 {
 	t_box	*box;
 	t_tag	*tag;
@@ -61,7 +53,7 @@ t_tag	*find_available_tag(t_box **box_list, size_t size)
 	return NULL;
 }
 
-t_box	*create_box(t_zone_type type, size_t boxsize)
+t_tag	*create_tag(t_zone_type type, size_t boxsize)
 {
 	void	*mem;
 	t_box	*box;
@@ -83,32 +75,11 @@ t_box	*create_box(t_zone_type type, size_t boxsize)
 	tag->next_tag = NULL;
 	tag->prev_tag = NULL;
 	tag->magic = TAG_MAGIC;
-	return box;
+	connect_to_boxlist(box);
+	return box->first_tag;
 }
 
-void	connect_to_boxlist(t_box *box)
-{
-	t_box	**box_list;
-	t_box	*cur;
-
-	if (box->type == ZONE_TINY)
-		box_list = &g_malloc.tiny_boxes;
-	else if (box->type == ZONE_SMALL)
-		box_list = &g_malloc.small_boxes;
-	else
-		box_list = &g_malloc.large_boxes;
-	if ((*box_list) == NULL)
-	{
-		(*box_list) = box;
-		return ;
-	}
-	cur = (*box_list);
-	while (cur->next_box != NULL)
-		cur = cur->next_box;
-	cur->next_box = box;
-}
-
-t_tag	*allocate_tag(t_tag *tag, size_t new_user_area)
+t_tag	*set_tag(t_tag *tag, size_t new_user_area)
 {
 	t_tag	*newtag;
 

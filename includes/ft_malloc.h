@@ -53,11 +53,11 @@ int				is_ptr_in_box(t_box *box, void *ptr);
 size_t			get_box_size(t_zone_type type, size_t user_size, size_t page);
 
 void			*malloc(size_t size);
-t_tag			*find_tag(t_zone_type type, size_t size, size_t boxsize);
-t_tag			*find_available_tag(t_box **box_list, size_t size);
-t_box			*create_box(t_zone_type type, size_t boxsize);
+t_tag			*get_tag(size_t size);
+t_tag			*find_tag(t_box **box_list, size_t size);
+t_tag			*create_tag(t_zone_type type, size_t boxsize);
 void			connect_to_boxlist(t_box *box);
-t_tag			*allocate_tag(t_tag *tag, size_t new_user_area);
+t_tag			*set_tag(t_tag *tag, size_t new_user_area);
 void			*tag_to_user(t_tag *tag);
 t_tag			*user_to_tag(void *ptr);
 int				can_split_tag(t_tag *tag, size_t user_area);
