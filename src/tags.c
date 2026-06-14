@@ -2,6 +2,8 @@
 
 void	*tag_to_user(t_tag *tag)
 {
+	if (tag == NULL)
+		return NULL;
 	return ((char *)tag + sizeof(*tag));
 }
 

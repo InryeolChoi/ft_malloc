@@ -51,11 +51,21 @@ t_box			*find_box_list(t_box *box_list, void *ptr);
 t_tag			*find_tag_in_box(t_box *box, void *ptr);
 int				is_ptr_in_box(t_box *box, void *ptr);
 size_t			get_box_size(t_zone_type type, size_t user_size, size_t page);
+
+void			*malloc(size_t size);
+t_tag			*find_tag(t_zone_type type, size_t size, size_t boxsize);
+t_tag			*find_available_tag(t_box **box_list, size_t size);
+t_box			*create_box(t_zone_type type, size_t boxsize);
+void			connect_to_boxlist(t_box *box);
+t_tag			*allocate_tag(t_tag *tag, size_t new_user_area);
+void			*tag_to_user(t_tag *tag);
+t_tag			*user_to_tag(void *ptr);
+int				can_split_tag(t_tag *tag, size_t user_area);
+t_tag			*make_newtag(t_tag *tag, size_t user_area);
+
 size_t			will_add_overflow(size_t num1, size_t num2);
 size_t			will_multi_overflow(size_t num1, size_t num2);
-void			*tag_to_user(t_tag *tag);
 
-void	*malloc(size_t size);
 void	free(void *ptr);
 void	*realloc(void *ptr, size_t size);
 void	show_alloc_mem(void);

@@ -6,15 +6,27 @@ void	*malloc(size_t size)
 {
 	size_t		boxsize;
 	t_zone_type	type;
-	t_box		*box;
 	t_tag		*tag;
 
 	if (size == 0)
 		size = 1;
 	type = get_zone_type(size);
-	if ((boxsize = get_box_size(type, size, get_basic_page_size())) == 0)
+	boxsize = get_box_size(type, size, get_basic_page_size());
+	if (boxsize == 0)
 		return NULL;
-	if ((tag = find_available_tag(get_box_list(type), size)) == NULL)
+	tag = find_tag(type, size, boxsize);
+	if (tag == NULL)
+		return NULL;
+	return tag_to_user(tag);
+}
+
+t_tag	*find_tag(t_zone_type type, size_t size, size_t boxsize)
+{
+	t_box	*box;
+	t_tag	*tag;
+
+	tag = find_available_tag(get_box_list(type), size);
+	if (tag == NULL)
 	{
 		box = create_box(type, boxsize);
 		if (box == NULL)
@@ -23,8 +35,11 @@ void	*malloc(size_t size)
 		tag = box->first_tag;
 	}
 	tag = allocate_tag(tag, size);
-	return tag_to_user(tag);
+	if (tag == NULL)
+		return NULL;
+	return tag;
 }
+
 
 t_tag	*find_available_tag(t_box **box_list, size_t size)
 {
@@ -76,9 +91,9 @@ void	connect_to_boxlist(t_box *box)
 	t_box	**box_list;
 	t_box	*cur;
 
-	if (box->size <= TINY_MAX)
+	if (box->type == ZONE_TINY)
 		box_list = &g_malloc.tiny_boxes;
-	else if (TINY_MAX < box->size && box->size <= SMALL_MAX)
+	else if (box->type == ZONE_SMALL)
 		box_list = &g_malloc.small_boxes;
 	else
 		box_list = &g_malloc.large_boxes;
@@ -93,30 +108,29 @@ void	connect_to_boxlist(t_box *box)
 	cur->next_box = box;
 }
 
-t_tag	*allocate_tag(t_tag *tag, size_t user_area)
+t_tag	*allocate_tag(t_tag *tag, size_t new_user_area)
 {
 	t_tag	*newtag;
 
-	tag->is_free = 0;
-	if (tag->user_area_size < user_area)
+	if (tag->user_area_size < new_user_area)
 	    return NULL;
-	if (tag->user_area_size - user_area >= sizeof(t_tag) + 1)
+	if (can_split_tag(tag, new_user_area) == 1)
 	{
-		newtag = (t_tag *)((char *)(tag_to_user(tag)) + user_area);
-		newtag->user_area_size = tag->user_area_size - user_area - sizeof(t_tag);
-		newtag->magic = TAG_MAGIC;
-		newtag->is_free = 1;
-		if (tag->next_tag == NULL)
-			newtag->next_tag = NULL;
-		else
+		newtag = make_newtag(tag, new_user_area);
+		if (tag->next_tag)
 		{
 			tag->next_tag->prev_tag = newtag;
+			newtag->prev_tag = tag;
 			newtag->next_tag = tag->next_tag;
+			tag->next_tag = newtag;
 		}
-		newtag->prev_tag = tag;
-		tag->next_tag = newtag;
+		else
+		{
+			tag->next_tag = newtag;
+			newtag->prev_tag = tag;
+		}
+		tag->user_area_size = new_user_area;
 	}
-	else
-		tag->user_area_size = user_area;
+	tag->is_free = 0;
 	return tag;
 }
