@@ -46,3 +46,19 @@ t_tag	*make_newtag(t_tag *tag, size_t new_user_area)
 	newtag->prev_tag = NULL;
 	return newtag;
 }
+
+void	set_newtag(t_tag *tag, t_tag *newtag)
+{
+	if (tag->next_tag)
+	{
+		tag->next_tag->prev_tag = newtag;
+		newtag->prev_tag = tag;
+		newtag->next_tag = tag->next_tag;
+		tag->next_tag = newtag;
+	}
+	else
+	{
+		tag->next_tag = newtag;
+		newtag->prev_tag = tag;
+	}
+}

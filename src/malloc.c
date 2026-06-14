@@ -88,18 +88,7 @@ t_tag	*set_tag(t_tag *tag, size_t new_user_area)
 	if (can_split_tag(tag, new_user_area) == 1)
 	{
 		newtag = make_newtag(tag, new_user_area);
-		if (tag->next_tag)
-		{
-			tag->next_tag->prev_tag = newtag;
-			newtag->prev_tag = tag;
-			newtag->next_tag = tag->next_tag;
-			tag->next_tag = newtag;
-		}
-		else
-		{
-			tag->next_tag = newtag;
-			newtag->prev_tag = tag;
-		}
+		set_newtag(tag, newtag);
 		tag->user_area_size = new_user_area;
 	}
 	tag->is_free = 0;

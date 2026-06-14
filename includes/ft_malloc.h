@@ -62,6 +62,7 @@ void			*tag_to_user(t_tag *tag);
 t_tag			*user_to_tag(void *ptr);
 int				can_split_tag(t_tag *tag, size_t user_area);
 t_tag			*make_newtag(t_tag *tag, size_t user_area);
+void			set_newtag(t_tag *tag, t_tag *newtag);
 
 size_t			will_add_overflow(size_t num1, size_t num2);
 size_t			will_multi_overflow(size_t num1, size_t num2);
