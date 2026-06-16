@@ -5,12 +5,9 @@ void	connect_to_boxlist(t_box *box)
 	t_box	**box_list;
 	t_box	*cur;
 
-	if (box->type == ZONE_TINY)
-		box_list = &g_malloc.tiny_boxes;
-	else if (box->type == ZONE_SMALL)
-		box_list = &g_malloc.small_boxes;
-	else
-		box_list = &g_malloc.large_boxes;
+	if (box == NULL)
+		return ;
+	box_list = get_box_list(box->type);
 	if ((*box_list) == NULL)
 	{
 		(*box_list) = box;
@@ -22,24 +19,32 @@ void	connect_to_boxlist(t_box *box)
 	cur->next_box = box;
 }
 
-int	can_split_tag(t_tag *tag, size_t new_user_area)
+int	can_split_tag(t_tag *tag, size_t needed_size)
 {
 	size_t	remain;
+	size_t	tag_header_size;
 
-	if (tag->user_area_size < new_user_area)
+	if (tag->payload_size < needed_size)
 		return 0;
-	remain = tag->user_area_size - new_user_area;
-	if (remain >= sizeof(t_tag) + 1)
+	tag_header_size = align_size(sizeof(t_tag));
+	if (tag_header_size == 0)
+		return 0;
+	remain = tag->payload_size - needed_size;
+	if (remain >= tag_header_size + ALIGNMENT)
 		return 1;
 	return 0;
 }
 
-t_tag	*make_newtag(t_tag *tag, size_t new_user_area)
+t_tag	*make_newtag(t_tag *tag, size_t used_size)
 {
 	t_tag	*newtag;
+	size_t	tag_header_size;
 
-	newtag = (t_tag *)((char *)(tag_to_user(tag)) + new_user_area);
-	newtag->user_area_size = tag->user_area_size - new_user_area - sizeof(t_tag);
+	tag_header_size = align_size(sizeof(t_tag));
+	if (tag_header_size == 0)
+		return NULL;
+	newtag = (t_tag *)((char *)(tag_to_user(tag)) + used_size);
+	newtag->payload_size = tag->payload_size - used_size - tag_header_size;
 	newtag->magic = TAG_MAGIC;
 	newtag->is_free = 1;
 	newtag->next_tag = NULL;

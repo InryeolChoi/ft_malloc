@@ -7,6 +7,7 @@
 
 # define TINY_MAX 128
 # define SMALL_MAX 1024
+# define ALIGNMENT _Alignof(max_align_t)
 # define TAG_MAGIC ((size_t)0xC0FFEE)
 
 typedef enum e_zone_type
@@ -27,7 +28,7 @@ typedef struct s_box
 
 typedef struct s_tag
 {
-	size_t			user_area_size;
+	size_t			payload_size;
 	int				is_free;
 	struct s_tag	*next_tag;
 	struct s_tag	*prev_tag;
@@ -43,32 +44,33 @@ typedef struct s_malloc_state
 
 extern t_malloc_state	g_malloc;
 
+void			*malloc(size_t size);
+void			free(void *ptr);
+void			*realloc(void *ptr, size_t size);
+void			show_alloc_mem(void);
+
 size_t			get_basic_page_size(void);
+size_t			align_size(size_t size);
+size_t			get_box_size(t_zone_type type, size_t user_size, size_t page);
+size_t			will_add_overflow(size_t num1, size_t num2);
+size_t			will_multi_overflow(size_t num1, size_t num2);
+
 t_zone_type		get_zone_type(size_t size);
 t_box			**get_box_list(t_zone_type type);
 t_box			*find_box_pool(void *ptr);
 t_box			*find_box_list(t_box *box_list, void *ptr);
-t_tag			*find_tag_in_box(t_box *box, void *ptr);
 int				is_ptr_in_box(t_box *box, void *ptr);
-size_t			get_box_size(t_zone_type type, size_t user_size, size_t page);
-
-void			*malloc(size_t size);
-t_tag			*get_tag(size_t size);
-t_tag			*find_tag(t_box **box_list, size_t size);
-t_tag			*create_tag(t_zone_type type, size_t boxsize);
+t_box			*create_box(t_zone_type type, size_t boxsize);
 void			connect_to_boxlist(t_box *box);
-t_tag			*set_tag(t_tag *tag, size_t new_user_area);
+
+t_tag			*get_tag(size_t size, t_zone_type type, size_t boxsize);
+t_tag			*find_tag(t_box **box_list, size_t size);
+t_tag			*set_tag(t_tag *tag, size_t needed_size);
 void			*tag_to_user(t_tag *tag);
 t_tag			*user_to_tag(void *ptr);
-int				can_split_tag(t_tag *tag, size_t user_area);
-t_tag			*make_newtag(t_tag *tag, size_t user_area);
+t_tag			*find_tag_in_box(t_box *box, void *ptr);
+int				can_split_tag(t_tag *tag, size_t needed_size);
+t_tag			*make_newtag(t_tag *tag, size_t used_size);
 void			set_newtag(t_tag *tag, t_tag *newtag);
-
-size_t			will_add_overflow(size_t num1, size_t num2);
-size_t			will_multi_overflow(size_t num1, size_t num2);
-
-void	free(void *ptr);
-void	*realloc(void *ptr, size_t size);
-void	show_alloc_mem(void);
 
 #endif
