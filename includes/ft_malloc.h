@@ -28,7 +28,7 @@ typedef struct s_box
 
 typedef struct s_tag
 {
-	size_t			payload_size;
+	size_t			capacity;
 	int				is_free;
 	struct s_tag	*next_tag;
 	struct s_tag	*prev_tag;

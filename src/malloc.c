@@ -61,7 +61,7 @@ t_tag	*find_tag(t_box **box_list, size_t size)
 		while (tag != NULL)
 		{
 			if (tag->magic == TAG_MAGIC && tag->is_free == 1
-				&& tag->payload_size >= size)
+				&& tag->capacity >= size)
 				return tag;
 			tag = tag->next_tag;
 		}
@@ -94,7 +94,7 @@ t_box	*create_box(t_zone_type type, size_t boxsize)
 	box->next_box = NULL;
 
 	tag = box->first_tag;
-	tag->payload_size = box->size - box_header_size - tag_header_size;
+	tag->capacity = box->size - box_header_size - tag_header_size;
 	tag->is_free = 1;
 	tag->next_tag = NULL;
 	tag->prev_tag = NULL;
@@ -108,7 +108,7 @@ t_tag	*set_tag(t_tag *tag, size_t needed_size)
 
 	if (tag == NULL)
 		return NULL;
-	if (tag->payload_size < needed_size)
+	if (tag->capacity < needed_size)
 		return NULL;
 	if (can_split_tag(tag, needed_size) == 1)
 	{
@@ -116,7 +116,7 @@ t_tag	*set_tag(t_tag *tag, size_t needed_size)
 		if (newtag == NULL)
 			return NULL;
 		set_newtag(tag, newtag);
-		tag->payload_size = needed_size;
+		tag->capacity = needed_size;
 	}
 	tag->is_free = 0;
 	return tag;

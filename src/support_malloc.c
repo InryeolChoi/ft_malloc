@@ -24,12 +24,12 @@ int	can_split_tag(t_tag *tag, size_t needed_size)
 	size_t	remain;
 	size_t	tag_header_size;
 
-	if (tag->payload_size < needed_size)
+	if (tag->capacity < needed_size)
 		return 0;
 	tag_header_size = align_size(sizeof(t_tag));
 	if (tag_header_size == 0)
 		return 0;
-	remain = tag->payload_size - needed_size;
+	remain = tag->capacity - needed_size;
 	if (remain >= tag_header_size + ALIGNMENT)
 		return 1;
 	return 0;
@@ -44,7 +44,7 @@ t_tag	*make_newtag(t_tag *tag, size_t used_size)
 	if (tag_header_size == 0)
 		return NULL;
 	newtag = (t_tag *)((char *)(tag_to_user(tag)) + used_size);
-	newtag->payload_size = tag->payload_size - used_size - tag_header_size;
+	newtag->capacity = tag->capacity - used_size - tag_header_size;
 	newtag->magic = TAG_MAGIC;
 	newtag->is_free = 1;
 	newtag->next_tag = NULL;
