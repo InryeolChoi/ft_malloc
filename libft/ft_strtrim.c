@@ -14,7 +14,7 @@
 
 size_t	ft_strlen(const char *str);
 
-static int	in(char x, const char *set)
+int	in(char x, const char *set)
 {
 	while (*set != '\0')
 	{

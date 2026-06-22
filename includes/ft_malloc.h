@@ -4,6 +4,7 @@
 # include <stddef.h>
 # include <sys/mman.h>
 # include <unistd.h>
+# include "libft/libft.h"
 
 # define TINY_MAX 128
 # define SMALL_MAX 1024
@@ -72,5 +73,7 @@ t_tag			*find_tag_in_box(t_box *box, void *ptr);
 int				can_split_tag(t_tag *tag, size_t needed_size);
 t_tag			*make_newtag(t_tag *tag, size_t used_size);
 void			set_newtag(t_tag *tag, t_tag *newtag);
+
+void			print_boxes(char *str, t_box *box);
 
 #endif

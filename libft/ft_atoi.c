@@ -21,7 +21,7 @@ static int	is_blank(char c)
 		return (0);
 }
 
-static int	figure_long(int sign)
+int	figure_long(int sign)
 {
 	if (sign == 1)
 		return ((int)LONG_MAX);

@@ -1,37 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_strjoin.c                                       :+:      :+:    :+:   */
+/*   get_next_line.h                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: inchoi <inchoi@student.42Seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/03/14 10:00:32 by inchoi            #+#    #+#             */
-/*   Updated: 2023/03/17 12:02:25 by inchoi           ###   ########.fr       */
+/*   Created: 2023/03/27 17:38:45 by inchoi            #+#    #+#             */
+/*   Updated: 2023/04/07 18:48:44 by inchoi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-#include "libft.h"
 
-char	*ft_strjoin(char const *s1, char const *s2)
-{
-	char	*joined;
-	int		size;
-	int		i;
+#ifndef GET_NEXT_LINE_H
+# define GET_NEXT_LINE_H
+# ifndef BUFFER_SIZE
+#  define BUFFER_SIZE 10000
+# endif
 
-	i = 0;
-	size = ft_strlen(s1) + ft_strlen(s2) + 1;
-	joined = (char *)malloc(size * sizeof(char));
-	if (!joined)
-		return (0);
-	while (i < size && *s1 != '\0')
-	{
-		joined[i++] = *s1;
-		s1++;
-	}
-	while (i < size && *s2 != '\0')
-	{
-		joined[i++] = *s2;
-		s2++;
-	}
-	joined[i] = '\0';
-	return (joined);
-}
+# include <unistd.h>
+# include <stdlib.h>
+
+char	*get_next_line(int fd);
+char	*ft_strchr_gnl(const char *s, int c);
+char	*ft_strjoin_gnl(char const *s1, char const *s2);
+char	*ft_strdup_gnl(char *src);
+size_t	ft_strlen_gnl(const char *str);
+
+#endif

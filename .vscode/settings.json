@@ -10,6 +10,9 @@
 	},
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,
+	"github.copilot.enable": {
+		"*": false
+	},
 	"[c]": {
 		"editor.defaultFormatter": null,
 		"editor.formatOnSave": false

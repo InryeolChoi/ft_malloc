@@ -1,37 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_strjoin.c                                       :+:      :+:    :+:   */
+/*   get_next_line_bonus.h                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: inchoi <inchoi@student.42Seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/03/14 10:00:32 by inchoi            #+#    #+#             */
-/*   Updated: 2023/03/17 12:02:25 by inchoi           ###   ########.fr       */
+/*   Created: 2023/04/05 11:49:15 by inchoi            #+#    #+#             */
+/*   Updated: 2023/04/06 14:05:10 by inchoi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-#include "libft.h"
 
-char	*ft_strjoin(char const *s1, char const *s2)
-{
-	char	*joined;
-	int		size;
-	int		i;
+#ifndef GET_NEXT_LINE_BONUS_H
+# define GET_NEXT_LINE_BONUS_H
+# define OPEN_MAX 10240
 
-	i = 0;
-	size = ft_strlen(s1) + ft_strlen(s2) + 1;
-	joined = (char *)malloc(size * sizeof(char));
-	if (!joined)
-		return (0);
-	while (i < size && *s1 != '\0')
-	{
-		joined[i++] = *s1;
-		s1++;
-	}
-	while (i < size && *s2 != '\0')
-	{
-		joined[i++] = *s2;
-		s2++;
-	}
-	joined[i] = '\0';
-	return (joined);
-}
+# ifndef BUFFER_SIZE
+#  define BUFFER_SIZE 10000
+# endif
+
+# include "libft.h"
+# include <unistd.h>
+# include <stdlib.h>
+
+char	*get_next_line_bonus(int fd);
+char	*ft_strdup_gnlX(char *src);
+char	*ft_strchr_gnlX(const char *s, int c);
+char	*ft_strjoin_gnlX(char const *s1, char const *s2);
+
+#endif
