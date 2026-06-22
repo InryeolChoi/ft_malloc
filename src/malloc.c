@@ -5,36 +5,38 @@ t_malloc_state	g_malloc = {0};
 void	*malloc(size_t size)
 {
 	size_t		boxsize;
+	size_t		original_size;
 	t_zone_type	type;
 	t_tag		*tag;
 
 	if (size == 0)
 		size = 1;
+	original_size = size;
 	size = align_size(size);
 	if (size == 0)
 		return NULL;
-	type = get_zone_type(size);
+	type = get_zone_type(original_size);
 	boxsize = get_box_size(type, size, get_basic_page_size());
 	if (boxsize == 0)
 		return NULL;
-	tag = get_tag(size, type, boxsize);
+	tag = get_tag(original_size, size, type, boxsize);
 	if (tag == NULL)
 		return NULL;
 	return tag_to_user(tag);
 }
 
-t_tag	*get_tag(size_t size, t_zone_type type, size_t boxsize)
+t_tag	*get_tag(size_t original_size, size_t needed_size, t_zone_type type, size_t boxsize)
 {
 	t_box	*box;
 	t_tag	*tag;
 
-	tag = find_tag(get_box_list(type), size);
+	tag = find_tag(get_box_list(type), needed_size);
 	if (tag == NULL)
 	{
 		box = create_box(type, boxsize);
 		if (box == NULL)
 			return NULL;
-		tag = set_tag(box->first_tag, size);
+		tag = set_tag(box->first_tag, original_size, needed_size);
 		if (tag == NULL)
 		{
 			munmap(box, box->size);
@@ -43,7 +45,7 @@ t_tag	*get_tag(size_t size, t_zone_type type, size_t boxsize)
 		connect_to_boxlist(box);
 		return tag;
 	}
-	tag = set_tag(tag, size);
+	tag = set_tag(tag, original_size, needed_size);
 	if (tag == NULL)
 		return NULL;
 	return tag;
@@ -95,6 +97,7 @@ t_box	*create_box(t_zone_type type, size_t boxsize)
 
 	tag = box->first_tag;
 	tag->capacity = box->size - box_header_size - tag_header_size;
+	tag->original_size = 0;
 	tag->is_free = 1;
 	tag->next_tag = NULL;
 	tag->prev_tag = NULL;
@@ -102,7 +105,7 @@ t_box	*create_box(t_zone_type type, size_t boxsize)
 	return box;
 }
 
-t_tag	*set_tag(t_tag *tag, size_t needed_size)
+t_tag	*set_tag(t_tag *tag, size_t original_size, size_t needed_size)
 {
 	t_tag	*newtag;
 
@@ -118,6 +121,7 @@ t_tag	*set_tag(t_tag *tag, size_t needed_size)
 		set_newtag(tag, newtag);
 		tag->capacity = needed_size;
 	}
+	tag->original_size = original_size;
 	tag->is_free = 0;
 	return tag;
 }

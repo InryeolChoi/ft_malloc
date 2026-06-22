@@ -45,6 +45,7 @@ t_tag	*make_newtag(t_tag *tag, size_t used_size)
 		return NULL;
 	newtag = (t_tag *)((char *)(tag_to_user(tag)) + used_size);
 	newtag->capacity = tag->capacity - used_size - tag_header_size;
+	newtag->original_size = 0;
 	newtag->magic = TAG_MAGIC;
 	newtag->is_free = 1;
 	newtag->next_tag = NULL;

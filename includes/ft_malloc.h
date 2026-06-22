@@ -30,6 +30,7 @@ typedef struct s_box
 typedef struct s_tag
 {
 	size_t			capacity;
+	size_t			original_size;
 	int				is_free;
 	struct s_tag	*next_tag;
 	struct s_tag	*prev_tag;
@@ -64,9 +65,11 @@ int				is_ptr_in_box(t_box *box, void *ptr);
 t_box			*create_box(t_zone_type type, size_t boxsize);
 void			connect_to_boxlist(t_box *box);
 
-t_tag			*get_tag(size_t size, t_zone_type type, size_t boxsize);
+t_tag			*get_tag(size_t original_size, size_t needed_size,
+					t_zone_type type, size_t boxsize);
 t_tag			*find_tag(t_box **box_list, size_t size);
-t_tag			*set_tag(t_tag *tag, size_t needed_size);
+t_tag			*set_tag(t_tag *tag, size_t original_size,
+					size_t needed_size);
 void			*tag_to_user(t_tag *tag);
 t_tag			*user_to_tag(void *ptr);
 t_tag			*find_tag_in_box(t_box *box, void *ptr);

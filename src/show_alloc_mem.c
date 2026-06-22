@@ -13,6 +13,7 @@ void	show_alloc_mem()
 	print_boxes("TINY", tiny);
 	print_boxes("SMALL", small);
 	print_boxes("LARGE", large);
+	print_total();
 }
 
 void	print_boxes(char *str, t_box *box)
@@ -30,11 +31,17 @@ void	print_boxes(char *str, t_box *box)
 			if (tag->is_free == 0)
 			{
 				tag_start = (char *)(tag_to_user(tag));
-				tag_end = tag_start + tag->capacity;
-				ft_printf("%p - %p : %d bytes\n", tag_start, tag_end, (int)(tag->capacity));
+				tag_end = tag_start + tag->original_size;
+				ft_printf("%p - %p : %d bytes\n", tag_start,
+					tag_end, (int)(tag->original_size));
 			}
 			tag = tag->next_tag;
 		}
 		box = box->next_box;
 	}
+}
+
+void	print_total()
+{
+	size_t	total;
 }
