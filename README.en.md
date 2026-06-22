@@ -13,14 +13,16 @@
 ## Current Structure
 
 - `includes/ft_malloc.h`: Shared types, constants, global state, and function prototypes
-- `src/malloc.c`: Global malloc state, box creation, free-tag lookup, and tag allocation/splitting groundwork for `malloc`
+- `src/malloc.c`: Free-tag lookup, box creation, and tag allocation/splitting for `malloc`
 - `src/free.c`: Basic `free` flow that finds the owning box/tag and marks the tag as free
 - `src/realloc.c`: Current `realloc` stub
-- `src/show_alloc_mem.c`: Placeholder for allocation-state output
+- `src/show_alloc_mem.c`: Per-zone allocation ranges, requested sizes, and total allocation output
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
-- `src/tags.c`: Helpers for converting between tag addresses and user-area addresses, plus tag lookup inside a box
-- `src/utils.c`: Helpers for page-size lookup, box-size calculation, and overflow-safe arithmetic
-- `libft/`: Copied libft dependency allowed by the assignment
+- `src/support_malloc.c`: Helpers for box linking, initial tag creation, tag splitting, and tag linking
+- `src/support_tags.c`: Tag/user address conversion and tag lookup inside a box
+- `src/support_size.c`: Alignment, page-size, zone-payload, and box-size calculation
+- `src/utils.c`: Overflow-safe addition and multiplication helpers
+- `libft/`: Assignment libft extended with `ft_printf`, get_next_line, and related utilities
 - `.clangd`: Include path configuration for `includes/` and `libft/`
 
 ## Memory Model
@@ -29,8 +31,11 @@ The current design is centered around `box` and `tag` metadata.
 
 - `t_box`: Represents a memory area obtained with mmap.
 - `t_tag`: Metadata stored before the user-visible allocation area.
+- `capacity`: Aligned payload capacity managed by a tag.
+- `origin_size`: Original user-requested size used for output and statistics.
 - `t_malloc_state`: Global state that tracks TINY, SMALL, and LARGE box lists.
 - `TAG_MAGIC`: Magic value used to validate tag metadata.
+- `ALIGNMENT`: 16-byte alignment used for payload and metadata placement.
 - `TINY_MAX`: Requests up to 128 bytes are classified as TINY.
 - `SMALL_MAX`: Requests up to 1024 bytes are classified as SMALL.
 
@@ -49,11 +54,14 @@ The current design is centered around `box` and `tag` metadata.
 - mmap box-size calculation based on request size and zone type
 - mmap-backed box creation with an initial free tag
 - Flow for connecting a new box to the global box list
-- Lookup for reusable free tags
-- Tag allocation with splitting when enough space remains
+- Reusable free-tag lookup across existing box lists
+- Aligned tag allocation and splitting when enough space remains
+- Separate storage for original request size and aligned capacity
+- TINY/SMALL/LARGE allocation ranges and total requested-size output
+- Allocation-free output through the extended libft `ft_printf`
 
 ## Status
 
-The repository setup, `libft` import, header design, `src/` file split, box/tag lookup helpers, the basic `free` flow, and an initial `malloc` box/tag allocation path are now in place.
+Box creation, existing free-tag reuse, tag splitting, alignment, basic `free`, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
 
-The full allocator behavior is still in progress. Next steps include tightening new-box linking rules, hardening tag split edge cases, coalescing free tags, cleaning up prototypes, and completing `malloc`, `free`, `realloc`, and `show_alloc_mem`.
+The allocator is still in progress. Next steps include free-tag coalescing, releasing unused boxes with `munmap`, implementing `realloc`, adding concurrency protection, and completing the build and test environment.

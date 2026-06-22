@@ -8,8 +8,8 @@
 
 # define TINY_MAX 128
 # define SMALL_MAX 1024
-# define ALIGNMENT _Alignof(max_align_t)
-# define TAG_MAGIC ((size_t)0xC0FFEE)
+# define ALIGNMENT 16
+# define TAG_MAGIC 0xC0FFEEUL
 
 typedef enum e_zone_type
 {
@@ -30,7 +30,7 @@ typedef struct s_box
 typedef struct s_tag
 {
 	size_t			capacity;
-	size_t			original_size;
+	size_t			origin_size;
 	int				is_free;
 	struct s_tag	*next_tag;
 	struct s_tag	*prev_tag;
@@ -65,18 +65,21 @@ int				is_ptr_in_box(t_box *box, void *ptr);
 t_box			*create_box(t_zone_type type, size_t boxsize);
 void			connect_to_boxlist(t_box *box);
 
-t_tag			*get_tag(size_t original_size, size_t needed_size,
+t_tag			*get_tag(size_t origin_size, size_t needed_size,
 					t_zone_type type, size_t boxsize);
 t_tag			*find_tag(t_box **box_list, size_t size);
-t_tag			*set_tag(t_tag *tag, size_t original_size,
+t_tag			*set_tag(t_tag *tag, size_t origin_size,
 					size_t needed_size);
+t_tag			*make_tag(t_box *box, size_t box_front, size_t tag_front);
+size_t			get_zone_payload(t_zone_type type, size_t user_size);
 void			*tag_to_user(t_tag *tag);
 t_tag			*user_to_tag(void *ptr);
 t_tag			*find_tag_in_box(t_box *box, void *ptr);
 int				can_split_tag(t_tag *tag, size_t needed_size);
 t_tag			*make_newtag(t_tag *tag, size_t used_size);
 void			set_newtag(t_tag *tag, t_tag *newtag);
-
 void			print_boxes(char *str, t_box *box);
+size_t			sum_tag_size(t_box *box);
+void			print_size(size_t size);
 
 #endif

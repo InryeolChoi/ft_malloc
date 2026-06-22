@@ -19,20 +19,34 @@ void	connect_to_boxlist(t_box *box)
 	cur->next_box = box;
 }
 
+t_tag	*make_tag(t_box *box, size_t box_front, size_t tag_front)
+{
+	t_tag	*tag;
+
+	tag = (t_tag *)((char *)box + box_front);
+	tag->capacity = box->size - box_front - tag_front;
+	tag->origin_size = 0;
+	tag->is_free = 1;
+	tag->next_tag = NULL;
+	tag->prev_tag = NULL;
+	tag->magic = TAG_MAGIC;
+	return (tag);
+}
+
 int	can_split_tag(t_tag *tag, size_t needed_size)
 {
 	size_t	remain;
 	size_t	tag_header_size;
 
 	if (tag->capacity < needed_size)
-		return 0;
+		return (0);
 	tag_header_size = align_size(sizeof(t_tag));
 	if (tag_header_size == 0)
-		return 0;
+		return (0);
 	remain = tag->capacity - needed_size;
 	if (remain >= tag_header_size + ALIGNMENT)
-		return 1;
-	return 0;
+		return (1);
+	return (0);
 }
 
 t_tag	*make_newtag(t_tag *tag, size_t used_size)
@@ -42,15 +56,15 @@ t_tag	*make_newtag(t_tag *tag, size_t used_size)
 
 	tag_header_size = align_size(sizeof(t_tag));
 	if (tag_header_size == 0)
-		return NULL;
+		return (NULL);
 	newtag = (t_tag *)((char *)(tag_to_user(tag)) + used_size);
 	newtag->capacity = tag->capacity - used_size - tag_header_size;
-	newtag->original_size = 0;
+	newtag->origin_size = 0;
 	newtag->magic = TAG_MAGIC;
 	newtag->is_free = 1;
 	newtag->next_tag = NULL;
 	newtag->prev_tag = NULL;
-	return newtag;
+	return (newtag);
 }
 
 void	set_newtag(t_tag *tag, t_tag *newtag)

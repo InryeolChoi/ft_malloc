@@ -15,6 +15,5 @@ void	free(void *ptr)
 		return ;
 	if (tag->is_free == 1)
 		return ;
-	tag->original_size = 0;
 	tag->is_free = 1;
 }

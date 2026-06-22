@@ -89,6 +89,6 @@ void	ft_putnbr_u(unsigned int n, int *cnt)
 	{
 		(*cnt) = -1;
 		return ;
-	}	
+	}
 	(*cnt)++;
 }
