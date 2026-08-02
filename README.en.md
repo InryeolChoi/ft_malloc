@@ -56,19 +56,21 @@ The current design is centered around `box` and `tag` metadata.
 - mmap-backed box creation with an initial free tag
 - Flow for connecting a new box to the global box list
 - Reusable free-tag lookup across existing box lists
+- LARGE requests skip free-tag reuse and allocate a dedicated box per request
 - Aligned tag allocation and splitting when enough space remains
+- Tag splitting is limited to TINY/SMALL-sized requests
 - Separate storage for original request size and aligned capacity
 - TINY/SMALL/LARGE allocation ranges and total requested-size output
 - Allocation-free output through the extended libft `ft_printf`
 
 ## Status
 
-Box creation, existing free-tag reuse, tag splitting, alignment, basic `free`, adjacent free-tag coalescing, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
+Box creation, TINY/SMALL free-tag reuse, TINY/SMALL tag splitting, dedicated LARGE box allocation, alignment, basic `free`, adjacent free-tag coalescing, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
 
-The allocator is still in progress. Next steps include releasing unused boxes with `munmap`, implementing `realloc`, adding concurrency protection, and completing the build and test environment.
+The allocator is still in progress. Next steps include releasing unused boxes, including LARGE boxes, with `munmap`, implementing `realloc`, adding concurrency protection, and completing the build and test environment.
 
 ## show_alloc_mem Checks
 
 The current implementation prints each active tag's start and end address, `origin_size`, and the total requested size grouped by TINY, SMALL, and LARGE. Basic checks covered `malloc(10)`, `malloc(200)`, `malloc(2000)`, `malloc(0)`, consecutive allocations in the same zone, multiple boxes, partial and full frees, empty lists, and 64-bit `size_t` output.
 
-`malloc(0)` is normalized internally to a 1-byte request, so its `origin_size` is also printed as 1. `free()` resets `origin_size` to 0 and coalesces adjacent free tags inside the same box. The latest checks printed addresses in increasing order, but box lists still follow creation order, so sorted output when `mmap` returns non-sequential addresses remains something to revisit.
+`malloc(0)` is normalized internally to a 1-byte request, so its `origin_size` is also printed as 1. `free()` resets `origin_size` to 0 and coalesces adjacent free tags inside the same box. LARGE requests are currently excluded from reusable tag lookup, allocate a fresh box each time, and are not split. The latest checks printed addresses in increasing order, but box lists still follow creation order, so sorted output when `mmap` returns non-sequential addresses remains something to revisit.

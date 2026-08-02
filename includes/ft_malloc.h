@@ -67,7 +67,7 @@ void			connect_to_boxlist(t_box *box);
 
 t_tag			*get_tag(size_t origin_size, size_t needed_size,
 					t_zone_type type, size_t boxsize);
-t_tag			*find_tag(t_box **box_list, size_t size);
+t_tag			*find_tag(t_zone_type type, size_t size);
 t_tag			*set_tag(t_tag *tag, size_t origin_size,
 					size_t needed_size);
 t_tag			*make_tag(t_box *box, size_t box_front, size_t tag_front);

@@ -31,7 +31,7 @@ t_tag	*get_tag(size_t origin_size, size_t needed_size, t_zone_type type,
 	t_box	*box;
 	t_tag	*tag;
 
-	tag = find_tag(get_box_list(type), needed_size);
+	tag = find_tag(type, needed_size);
 	if (tag == NULL)
 	{
 		box = create_box(type, boxsize);
@@ -52,12 +52,14 @@ t_tag	*get_tag(size_t origin_size, size_t needed_size, t_zone_type type,
 	return (tag);
 }
 
-t_tag	*find_tag(t_box **box_list, size_t size)
+t_tag	*find_tag(t_zone_type type, size_t size)
 {
 	t_box	*box;
 	t_tag	*tag;
 
-	box = *box_list;
+	if (type == ZONE_LARGE)
+		return (NULL);
+	box = *(get_box_list(type));
 	while (box != NULL)
 	{
 		tag = box->first_tag;

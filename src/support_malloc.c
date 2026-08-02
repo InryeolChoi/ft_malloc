@@ -38,6 +38,8 @@ int	can_split_tag(t_tag *tag, size_t needed_size)
 	size_t	remain;
 	size_t	tag_header_size;
 
+	if (needed_size > SMALL_MAX)
+		return (0);
 	if (tag->capacity < needed_size)
 		return (0);
 	tag_header_size = align_size(sizeof(t_tag));

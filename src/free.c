@@ -5,15 +5,10 @@ void	free(void *ptr)
 	t_box	*box;
 	t_tag	*tag;
 
-	if (ptr == NULL)
-		return ;
-	box = find_box_pool(ptr);
-	if (box == NULL)
+	if (ptr == NULL || (box = find_box_pool(ptr)) == NULL)
 		return ;
 	tag = find_tag_in_box(box, ptr);
-	if (tag == NULL)
-		return ;
-	if (tag->is_free == 1)
+	if (tag == NULL || tag->is_free == 1)
 		return ;
 	tag->origin_size = 0;
 	tag->is_free = 1;
