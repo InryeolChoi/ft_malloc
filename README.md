@@ -15,7 +15,7 @@
 
 - `includes/ft_malloc.h`: 공통 타입, 상수, 전역 상태, 함수 프로토타입 정의
 - `src/malloc.c`: free tag 탐색, box 생성, tag 할당/분할 기반 `malloc` 구현
-- `src/free.c`: 포인터가 속한 box/tag를 찾아 free 상태로 표시하는 기본 `free`
+- `src/free.c`: 포인터가 속한 box/tag를 찾아 해제하고 인접 free tag를 병합하는 `free`
 - `src/realloc.c`: 현재 `realloc` stub
 - `src/show_alloc_mem.c`: zone별 할당 주소와 요청 크기, 전체 할당량 출력
 - `src/boxes.c`: zone type 판별, box list 접근, 포인터가 속한 box 탐색 헬퍼
@@ -49,7 +49,8 @@
 - 전체 box pool에서 포인터가 속한 box 탐색
 - tag와 user area 사이의 주소 변환
 - box 내부에서 user pointer에 대응되는 tag 탐색
-- `free(ptr)`에서 유효한 tag를 찾아 `is_free` 표시
+- `free(ptr)`에서 유효한 tag를 찾아 요청 크기를 초기화하고 `is_free` 표시
+- 해제된 tag의 이전/다음 tag가 free 상태라면 같은 box 안에서 병합
 - OS별 페이지 크기 조회와 fallback 처리
 - overflow를 피하기 위한 덧셈/곱셈 helper
 - 요청 크기와 zone type에 따른 mmap box 크기 계산
@@ -63,12 +64,12 @@
 
 ## 진행 상태
 
-현재 `malloc`의 box 생성, 기존 free tag 재사용, tag split, 정렬 처리와 기본 `free`, `show_alloc_mem` 출력 흐름이 구현된 상태입니다. 전체 소스는 현재 `-Wall -Wextra -Werror` 문법 검사를 통과합니다.
+현재 `malloc`의 box 생성, 기존 free tag 재사용, tag split, 정렬 처리, 기본 `free`, 인접 free tag 병합, `show_alloc_mem` 출력 흐름이 구현된 상태입니다. 전체 소스는 현재 `-Wall -Wextra -Werror` 문법 검사를 통과합니다.
 
-아직 전체 allocator 동작은 구현 중입니다. 이후 작업은 free tag 병합, 불필요한 box의 `munmap`, `realloc` 구현, 동시성 보호, 빌드/테스트 환경 완성 순서로 이어질 예정입니다.
+아직 전체 allocator 동작은 구현 중입니다. 이후 작업은 불필요한 box의 `munmap`, `realloc` 구현, 동시성 보호, 빌드/테스트 환경 완성 순서로 이어질 예정입니다.
 
 ## show_alloc_mem 검증
 
 기초 구현은 TINY/SMALL/LARGE별 사용 중인 tag의 시작·끝 주소와 `origin_size`, 전체 요청 크기 합계를 출력합니다. `malloc(10)`, `malloc(200)`, `malloc(2000)`, `malloc(0)`, 같은 zone의 연속 할당, 여러 box, 중간 및 전체 `free`, 빈 목록, 64-bit `size_t` 출력을 검사했으며 컴파일과 런타임 검증을 통과했습니다.
 
-현재 `malloc(0)`은 내부에서 1 byte 요청으로 정규화되어 `origin_size`도 1로 출력됩니다. 또한 이번 실행에서는 주소가 증가하는 순서로 출력됐지만 box list는 생성 순서를 사용하므로 mmap이 비순차 주소를 반환할 때의 정렬 보장은 별도 검토가 필요합니다. 다음 allocator 작업으로 free tag 병합을 검토합니다.
+현재 `malloc(0)`은 내부에서 1 byte 요청으로 정규화되어 `origin_size`도 1로 출력됩니다. `free()`는 tag를 free 상태로 바꾸면서 `origin_size`를 0으로 되돌리고, 같은 box 안에서 앞뒤로 맞닿은 free tag를 병합합니다. 또한 이번 실행에서는 주소가 증가하는 순서로 출력됐지만 box list는 생성 순서를 사용하므로 mmap이 비순차 주소를 반환할 때의 정렬 보장은 별도 검토가 필요합니다. 다음 allocator 작업으로 box 전체가 비었을 때 `munmap`하는 흐름과 `realloc` 구현을 검토합니다.

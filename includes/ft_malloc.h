@@ -81,5 +81,6 @@ void			set_newtag(t_tag *tag, t_tag *newtag);
 void			print_boxes(char *str, t_box *box);
 size_t			sum_tag_size(t_box *box);
 void			print_size(size_t size);
-
+t_tag			*merge_with_prev(t_tag *tag);
+t_tag			*merge_with_next(t_tag *tag);
 #endif

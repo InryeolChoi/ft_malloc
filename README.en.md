@@ -14,7 +14,7 @@
 
 - `includes/ft_malloc.h`: Shared types, constants, global state, and function prototypes
 - `src/malloc.c`: Free-tag lookup, box creation, and tag allocation/splitting for `malloc`
-- `src/free.c`: Basic `free` flow that finds the owning box/tag and marks the tag as free
+- `src/free.c`: `free` flow that finds the owning box/tag, releases it, and merges adjacent free tags
 - `src/realloc.c`: Current `realloc` stub
 - `src/show_alloc_mem.c`: Per-zone allocation ranges, requested sizes, and total allocation output
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
@@ -48,7 +48,8 @@ The current design is centered around `box` and `tag` metadata.
 - Lookup of the box that owns a user pointer across the whole box pool
 - Address conversion between a tag and its user area
 - Lookup of the tag that corresponds to a user pointer inside a box
-- Basic `free(ptr)` behavior that marks a valid tag as free
+- Basic `free(ptr)` behavior that clears the requested size and marks a valid tag as free
+- Adjacent free-tag coalescing with the previous and next tags inside the same box
 - OS-specific page-size lookup with a fallback
 - Overflow-safe addition and multiplication helpers
 - mmap box-size calculation based on request size and zone type
@@ -62,6 +63,12 @@ The current design is centered around `box` and `tag` metadata.
 
 ## Status
 
-Box creation, existing free-tag reuse, tag splitting, alignment, basic `free`, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
+Box creation, existing free-tag reuse, tag splitting, alignment, basic `free`, adjacent free-tag coalescing, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
 
-The allocator is still in progress. Next steps include free-tag coalescing, releasing unused boxes with `munmap`, implementing `realloc`, adding concurrency protection, and completing the build and test environment.
+The allocator is still in progress. Next steps include releasing unused boxes with `munmap`, implementing `realloc`, adding concurrency protection, and completing the build and test environment.
+
+## show_alloc_mem Checks
+
+The current implementation prints each active tag's start and end address, `origin_size`, and the total requested size grouped by TINY, SMALL, and LARGE. Basic checks covered `malloc(10)`, `malloc(200)`, `malloc(2000)`, `malloc(0)`, consecutive allocations in the same zone, multiple boxes, partial and full frees, empty lists, and 64-bit `size_t` output.
+
+`malloc(0)` is normalized internally to a 1-byte request, so its `origin_size` is also printed as 1. `free()` resets `origin_size` to 0 and coalesces adjacent free tags inside the same box. The latest checks printed addresses in increasing order, but box lists still follow creation order, so sorted output when `mmap` returns non-sequential addresses remains something to revisit.
