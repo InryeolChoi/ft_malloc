@@ -83,4 +83,6 @@ size_t			sum_tag_size(t_box *box);
 void			print_size(size_t size);
 t_tag			*merge_with_prev(t_tag *tag);
 t_tag			*merge_with_next(t_tag *tag);
+int				can_unmap_box(t_box *box, t_tag *tag);
+void			unmap_box(t_box *box);
 #endif
