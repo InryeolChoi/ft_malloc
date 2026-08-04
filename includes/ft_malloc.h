@@ -49,6 +49,9 @@ extern t_malloc_state	g_malloc;
 void			*malloc(size_t size);
 void			free(void *ptr);
 void			*realloc(void *ptr, size_t size);
+void			*remake_minptr(void *ptr);
+void			*remake_origin(void *ptr, size_t size, t_tag *tag);
+void			*remake_newptr(void *ptr, size_t size, t_tag *tag);
 void			show_alloc_mem(void);
 
 size_t			get_basic_page_size(void);
