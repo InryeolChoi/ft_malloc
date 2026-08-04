@@ -18,7 +18,6 @@
 - `src/realloc.c`: Current `realloc` stub
 - `src/show_alloc_mem.c`: Per-zone allocation ranges, requested sizes, and total allocation output
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
-- `src/support_free.c`: Helpers for deciding whether a box can be released
 - `src/support_malloc.c`: Helpers for box linking, initial tag creation, tag splitting, and tag linking
 - `src/support_tags.c`: Tag/user address conversion and tag lookup inside a box
 - `src/support_size.c`: Alignment, page-size, zone-payload, and box-size calculation
@@ -59,6 +58,7 @@ The current design is centered around `box` and `tag` metadata.
 - Reusable free-tag lookup across existing box lists
 - LARGE requests skip free-tag reuse and allocate a dedicated box per request
 - Fully freed LARGE boxes are removed from the box list and released with `munmap`
+- Fully freed TINY/SMALL boxes are released with `munmap` when another box remains in the same zone
 - Aligned tag allocation and splitting when enough space remains
 - Tag splitting is limited to TINY/SMALL-sized requests
 - Separate storage for original request size and aligned capacity
@@ -67,12 +67,12 @@ The current design is centered around `box` and `tag` metadata.
 
 ## Status
 
-Box creation, TINY/SMALL free-tag reuse, TINY/SMALL tag splitting, dedicated LARGE box allocation, LARGE box `munmap`, alignment, basic `free`, adjacent free-tag coalescing, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
+Box creation, TINY/SMALL free-tag reuse, TINY/SMALL tag splitting, dedicated LARGE box allocation, conditional `munmap` for empty boxes, alignment, basic `free`, adjacent free-tag coalescing, and `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror` syntax check.
 
-The allocator is still in progress. Next steps include releasing fully unused TINY/SMALL boxes with `munmap`, implementing `realloc`, adding concurrency protection, and completing the build and test environment.
+The allocator is still in progress. Next steps include implementing `realloc`, adding concurrency protection, completing the build and test environment, and further validating the TINY/SMALL box release policy.
 
 ## show_alloc_mem Checks
 
 The current implementation prints each active tag's start and end address, `origin_size`, and the total requested size grouped by TINY, SMALL, and LARGE. Basic checks covered `malloc(10)`, `malloc(200)`, `malloc(2000)`, `malloc(0)`, consecutive allocations in the same zone, multiple boxes, partial and full frees, empty lists, and 64-bit `size_t` output.
 
-`malloc(0)` is normalized internally to a 1-byte request, so its `origin_size` is also printed as 1. `free()` resets `origin_size` to 0 and coalesces adjacent free tags inside the same box. LARGE requests are currently excluded from reusable tag lookup, allocate a fresh box each time, are not split, and are removed from the box list and released with `munmap` once freed. The latest checks printed addresses in increasing order, but box lists still follow creation order, so sorted output when `mmap` returns non-sequential addresses remains something to revisit.
+`malloc(0)` is normalized internally to a 1-byte request, so its `origin_size` is also printed as 1. `free()` resets `origin_size` to 0 and coalesces adjacent free tags inside the same box. LARGE requests are currently excluded from reusable tag lookup, allocate a fresh box each time, are not split, and are removed from the box list and released with `munmap` once freed. TINY/SMALL boxes are also eligible for `munmap` when the whole box is free and another box remains in the same zone. The latest checks printed addresses in increasing order, but box lists still follow creation order, so sorted output when `mmap` returns non-sequential addresses remains something to revisit.

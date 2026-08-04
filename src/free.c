@@ -49,6 +49,27 @@ t_tag	*merge_with_next(t_tag *tag)
 	return (tag);
 }
 
+int	can_unmap_box(t_box *box, t_tag *tag)
+{
+	t_box	*boxlist;
+
+	if (tag == box->first_tag && tag->is_free == 1
+		&& tag->next_tag == NULL)
+	{
+		if (box->type == ZONE_LARGE)
+			return (1);
+		boxlist = *(get_box_list(box->type));
+		while (boxlist != NULL)
+		{
+			if (boxlist != box)
+				return (1);
+			boxlist = boxlist->next_box;
+		}
+		return (0);
+	}
+	return (0);
+}
+
 void	unmap_box(t_box *box)
 {
 	t_box	**link;
