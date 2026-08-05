@@ -1,0 +1,65 @@
+ifeq ($(strip $(HOSTTYPE)),)
+override HOSTTYPE := $(shell uname -m)_$(shell uname -s)
+endif
+
+NAME := libft_malloc_$(HOSTTYPE).so
+LINK := libft_malloc.so
+
+CC := cc
+CFLAGS := -Wall -Wextra -Werror -fPIC
+CPPFLAGS := -Iincludes -I.
+RM := rm -f
+
+SRC_DIR := src
+OBJ_DIR := obj
+LIBFT_DIR := libft
+LIBFT := $(LIBFT_DIR)/libft.a
+
+SRCS := boxes.c \
+		free.c \
+		malloc.c \
+		realloc.c \
+		show_alloc_mem.c \
+		support_malloc.c \
+		support_size.c \
+		support_tags.c \
+		utils.c
+
+OBJS := $(SRCS:%.c=$(OBJ_DIR)/%.o)
+LIBFT_SRCS := $(filter-out %_bonus.c,$(wildcard $(LIBFT_DIR)/*.c)) \
+			$(filter-out %_bonus.h,$(wildcard $(LIBFT_DIR)/*.h)) \
+			$(LIBFT_DIR)/Makefile
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+SHARED_FLAGS := -dynamiclib
+else
+SHARED_FLAGS := -shared
+endif
+
+all: $(NAME) $(LINK)
+
+$(NAME): $(OBJS) $(LIBFT)
+	$(CC) $(SHARED_FLAGS) -o $@ $(OBJS) $(LIBFT)
+
+$(LINK): $(NAME)
+	ln -sf $(NAME) $(LINK)
+
+$(LIBFT): $(LIBFT_SRCS)
+	$(MAKE) -C $(LIBFT_DIR) CFLAGS="-Wall -Wextra -Werror -fPIC"
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c includes/ft_malloc.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+clean:
+	$(RM) -r $(OBJ_DIR)
+	$(MAKE) -C $(LIBFT_DIR) clean
+
+fclean: clean
+	$(RM) $(NAME) $(LINK)
+	$(MAKE) -C $(LIBFT_DIR) fclean
+
+re: fclean all
+
+.PHONY: all clean fclean re
