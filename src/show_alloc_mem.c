@@ -15,7 +15,7 @@ void	show_alloc_mem(void)
 	print_boxes("LARGE", large);
 	total = sum_tag_size(tiny) + sum_tag_size(small) + sum_tag_size(large);
 	write(1, "TOTAL : ", 8);
-	print_size(total);
+	print_tag_size(total);
 	write(1, " bytes\n", 7);
 }
 
@@ -23,7 +23,6 @@ void	print_boxes(char *str, t_box *box)
 {
 	t_box	*lastbox;
 
-	lastbox = find_last_box(box);
 	while (box)
 	{
 		ft_printf("%s : %p\n", str, box);
@@ -37,7 +36,6 @@ void	print_all_tags(t_box *box)
 	t_tag	*tag;
 	char	*tag_start;
 	char	*tag_end;
-	char	digit;
 
 	tag = box->first_tag;
 	while (tag)
@@ -53,4 +51,3 @@ void	print_all_tags(t_box *box)
 		tag = tag->next_tag;
 	}
 }
-

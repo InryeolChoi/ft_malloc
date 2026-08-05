@@ -82,6 +82,7 @@ int				can_split_tag(t_tag *tag, size_t needed_size);
 t_tag			*make_newtag(t_tag *tag, size_t used_size);
 void			set_newtag(t_tag *tag, t_tag *newtag);
 void			print_boxes(char *str, t_box *box);
+void			print_all_tags(t_box *box);
 size_t			sum_tag_size(t_box *box);
 void			print_tag_size(size_t size);
 t_tag			*merge_with_prev(t_tag *tag);
