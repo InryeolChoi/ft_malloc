@@ -37,3 +37,33 @@ t_tag	*find_tag_in_box(t_box *box, void *ptr)
 	}
 	return (NULL);
 }
+
+size_t	sum_tag_size(t_box *box)
+{
+	t_tag	*tag;
+	size_t	total_size;
+
+	total_size = 0;
+	while (box)
+	{
+		tag = box->first_tag;
+		while (tag)
+		{
+			if (tag->is_free == 0)
+				total_size += tag->origin_size;
+			tag = tag->next_tag;
+		}
+		box = box->next_box;
+	}
+	return (total_size);
+}
+
+void	print_tag_size(size_t size)
+{
+	char	digit;
+
+	if (size >= 10)
+		print_tag_size(size / 10);
+	digit = '0' + size % 10;
+	write(1, &digit, 1);
+}
