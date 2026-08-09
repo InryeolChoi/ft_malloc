@@ -15,10 +15,9 @@
 
 # include <stddef.h>
 # include <stdint.h>
-
 # include <sys/mman.h>
 # include <unistd.h>
-
+# include <pthread.h>
 # include "libft/libft.h"
 
 # define TINY_MAX 128
@@ -59,7 +58,15 @@ typedef struct s_malloc_state
 	t_box	*large_boxes;
 }	t_malloc_state;
 
+typedef struct s_thread_state
+{
+	pthread_mutex_t	tiny;
+	pthread_mutex_t	small;
+	pthread_mutex_t	large;
+}	t_thread_state;
+
 extern t_malloc_state	g_malloc;
+extern t_thread_state	g_thread;
 
 void			*malloc(size_t size);
 void			free(void *ptr);
