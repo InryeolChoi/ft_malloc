@@ -21,14 +21,35 @@ void	show_alloc_mem(void)
 
 void	print_boxes(char *str, t_box *box)
 {
-	t_box	*lastbox;
+	t_box	*prev;
+	t_box	*cur;
 
+	prev = NULL;
+	while (1)
+	{
+		cur = find_next_box(box, prev);
+		if (!cur)
+			break;
+		ft_printf("%s : %p\n", str, cur);
+		print_all_tags(cur);
+		prev = cur;
+	}
+}
+
+t_box	*find_next_box(t_box *box, t_box *prev)
+{
+	t_box	*candidate;
+
+	candidate = NULL;
 	while (box)
 	{
-		ft_printf("%s : %p\n", str, box);
-		print_all_tags(box);
+		if ((prev == NULL || (uintptr_t)box > (uintptr_t)prev)
+			&& (candidate == NULL
+				|| (uintptr_t)box < (uintptr_t)candidate))
+			candidate = box;
 		box = box->next_box;
 	}
+	return (candidate);
 }
 
 void	print_all_tags(t_box *box)

@@ -13,11 +13,11 @@
 
 ## 현재 구성
 
-- `includes/ft_malloc.h`: 공통 타입, 상수, 전역 상태, 함수 프로토타입 정의
+- `includes/ft_malloc.h`: 공통 타입, 상수, 전역 상태와 의미별로 그룹화한 함수 프로토타입 정의
 - `src/malloc.c`: free tag 탐색, box 생성, tag 할당/분할 기반 `malloc` 구현
 - `src/free.c`: 포인터가 속한 box/tag를 찾아 해제하고 인접 free tag를 병합하는 `free`
 - `src/realloc.c`: 포인터 검증, 축소, 재할당과 데이터 복사를 처리하는 기본 `realloc` 구현
-- `src/show_alloc_mem.c`: zone별 할당 주소와 요청 크기, 전체 할당량 출력
+- `src/show_alloc_mem.c`: zone별 box를 주소순으로 선택해 할당 범위, 요청 크기, 전체 할당량 출력
 - `src/boxes.c`: zone type 판별, box list 접근, 포인터가 속한 box 탐색 헬퍼
 - `src/support_malloc.c`: box 연결, 최초 tag 생성, tag split 및 연결 헬퍼
 - `src/support_tags.c`: tag와 user area 사이의 주소 변환, box 내부 tag 탐색
@@ -82,7 +82,9 @@ make re       # 전체 정리 후 다시 빌드
 - 정렬된 요청 크기를 기준으로 tag 할당 및 남은 공간 분할
 - tag split은 TINY/SMALL 크기 요청에서만 수행
 - 원래 요청 크기와 정렬된 capacity를 분리해 저장
-- `show_alloc_mem`에서 TINY/SMALL/LARGE별 주소 범위와 전체 요청 크기 출력
+- `show_alloc_mem`에서 TINY/SMALL/LARGE별 box를 `uintptr_t` 주소 오름차순으로 선택하고 주소 범위와 전체 요청 크기 출력
+- `find_next_box`가 직전에 출력한 box보다 주소가 큰 box 중 최솟값을 매번 다시 찾아 생성 순서와 무관하게 출력
+- 임시 allocation이나 `t_box` 출력 플래그 없이 box 정렬에 O(n^2) 시간과 O(1) 추가 메모리 사용
 - 확장된 libft의 `ft_printf`를 동적 할당 없이 출력에 사용
 - `realloc(NULL, size)`를 `malloc(size)`와 같은 흐름으로 처리
 - 유효하지 않거나 이미 해제된 포인터에 대해 `NULL` 반환
@@ -93,14 +95,18 @@ make re       # 전체 정리 후 다시 빌드
 
 ## 진행 상태
 
-현재 `malloc`의 box 생성, TINY/SMALL free tag 재사용과 split, LARGE 전용 box 할당, 비어 있는 box의 조건부 `munmap`, 정렬 처리, 기본 `free`, 인접 free tag 병합, 기본 `realloc`, `show_alloc_mem` 출력 흐름이 구현된 상태입니다. 전체 소스는 `-Wall -Wextra -Werror` 문법 검사를 통과하며 루트 Makefile로 shared library를 빌드할 수 있습니다.
+현재 `malloc`의 box 생성, TINY/SMALL free tag 재사용과 split, LARGE 전용 box 할당, 비어 있는 box의 조건부 `munmap`, 정렬 처리, 기본 `free`, 인접 free tag 병합, 기본 `realloc`, 주소순 `show_alloc_mem` 출력 흐름이 구현된 상태입니다. 전체 소스는 `-Wall -Wextra -Werror -Wmissing-prototypes` 문법 검사를 통과하며 루트 Makefile로 shared library를 빌드할 수 있습니다.
 
-`realloc`은 NULL, 기존 capacity 안의 축소, 확장과 데이터 복사, size 0, `SIZE_MAX` 할당 실패 시 기존 영역 보존, invalid pointer, TINY/SMALL/LARGE 경계를 대상으로 한 테스트를 각각 5회 반복해 통과했습니다. `make`, `clean`, `fclean`, `re`와 변경 없는 상태의 incremental make도 검증했고, shared library가 `malloc`, `free`, `realloc`, `show_alloc_mem` 필수 심볼을 export하는 것을 확인했습니다.
+`find_next_box`의 empty/one/five/mixed/tail 케이스와 `print_boxes`/`show_alloc_mem`의 결정적 주소 오름차순 출력을 각각 5회 반복해 통과했습니다. malloc/free/realloc의 zone 분류, split, 재사용, 병합, LARGE `munmap`, realloc 회귀 검사도 각각 5회 반복해 통과했습니다. shared library의 `malloc`, `free`, `realloc`, `show_alloc_mem` 필수 심볼 export를 확인했으며 timeout 발생은 0건이었습니다.
 
-남은 주요 작업은 thread safety와 bonus 기능입니다. 제자리 `realloc` 확장과 축소 시 남은 capacity를 split하는 동작은 최적화 과제로 남아 있습니다. 공식 `norminette`는 아직 설치되지 않았으며 수동 점검에서는 C/H 코드의 80열 제한, 함수 길이, 인자/변수 수, 파일당 함수 수를 통과했지만 `includes/ft_malloc.h`와 `src/*.c`에는 표준 42 파일 헤더가 추가되지 않았습니다.
+`includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
+
+공식 `norminette`는 아직 설치되어 있지 않으며, 설치 후 전체 검사가 필요합니다. `includes/ft_malloc.h`, `src/*.c`, `Makefile`의 표준 42 파일 헤더 추가와 `libft/Makefile`이 libft 헤더 변경 시 관련 object를 증분 재컴파일하지 않는 기존 헤더 의존성 문제도 남아 있습니다. thread safety와 bonus 기능, 제자리 `realloc` 확장 및 축소 후 남은 capacity split은 향후 범위입니다.
 
 ## show_alloc_mem 검증
 
 기초 구현은 TINY/SMALL/LARGE별 사용 중인 tag의 시작·끝 주소와 `origin_size`, 전체 요청 크기 합계를 출력합니다. `malloc(10)`, `malloc(200)`, `malloc(2000)`, `malloc(0)`, 같은 zone의 연속 할당, 여러 box, 중간 및 전체 `free`, 빈 목록, 64-bit `size_t` 출력을 검사했으며 컴파일과 런타임 검증을 통과했습니다.
 
-현재 `malloc(0)`은 내부에서 1 byte 요청으로 정규화되어 `origin_size`도 1로 출력됩니다. `free()`는 tag를 free 상태로 바꾸면서 `origin_size`를 0으로 되돌리고, 같은 box 안에서 앞뒤로 맞닿은 free tag를 병합합니다. LARGE 요청은 현재 재사용 가능한 tag 탐색 대상에서 제외되어 매번 새 box를 확보하고, split도 수행하지 않으며, 해제 후 box 전체가 비면 box list에서 제거한 뒤 `munmap`합니다. TINY/SMALL box도 전체가 비고 같은 zone에 다른 box가 남아 있으면 `munmap` 대상이 됩니다. 또한 이번 실행에서는 주소가 증가하는 순서로 출력됐지만 box list는 생성 순서를 사용하므로 mmap이 비순차 주소를 반환할 때의 정렬 보장은 별도 검토가 필요합니다.
+현재 `malloc(0)`은 내부에서 1 byte 요청으로 정규화되어 `origin_size`도 1로 출력됩니다. `free()`는 tag를 free 상태로 바꾸면서 `origin_size`를 0으로 되돌리고, 같은 box 안에서 앞뒤로 맞닿은 free tag를 병합합니다. LARGE 요청은 현재 재사용 가능한 tag 탐색 대상에서 제외되어 매번 새 box를 확보하고, split도 수행하지 않으며, 해제 후 box 전체가 비면 box list에서 제거한 뒤 `munmap`합니다. TINY/SMALL box도 전체가 비고 같은 zone에 다른 box가 남아 있으면 `munmap` 대상이 됩니다.
+
+각 zone의 box 출력은 `find_next_box`가 직전에 선택한 주소보다 큰 box 중 `uintptr_t` 기준 최솟값을 전체 box list에서 다시 찾는 방식입니다. 따라서 box 생성 순서나 `mmap` 반환 순서와 관계없이 주소 오름차순으로 선택하며, 해당 zone의 box 수를 n이라 할 때 O(n^2) 시간과 O(1) 추가 메모리를 사용합니다. 이 과정은 임시 allocation을 만들거나 `t_box`에 출력 여부 플래그를 추가하지 않습니다. empty/one/five/mixed/tail 선택과 결정적 주소 오름차순 출력은 각각 5회 반복 검사를 통과했습니다.
