@@ -1,5 +1,6 @@
 NAME = libft.a
 CFLAGS = -I ./libft.h -Wall -Wextra -Werror
+DEPFLAGS = -MMD -MP
 SRCS = ft_isalpha.c ft_isdigit.c ft_isalnum.c ft_isascii.c \
 		ft_isprint.c ft_strlen.c ft_memset.c ft_bzero.c \
 		ft_memcpy.c ft_memmove.c ft_strlcpy.c ft_strlcat.c \
@@ -16,24 +17,28 @@ SRCS = ft_isalpha.c ft_isdigit.c ft_isalnum.c ft_isascii.c \
 BONUS = ft_lstnew.c ft_lstadd_front.c ft_lstsize.c \
 		ft_lstlast.c ft_lstadd_back.c ft_lstdelone.c \
 		ft_lstclear.c ft_lstiter.c ft_lstmap.c \
-		get_next_line_bonus.c get_next_line_utils_bonus.c 
+		get_next_line_bonus.c get_next_line_utils_bonus.c
 
 OBJS = $(SRCS:.c=.o)
 OBJS_BONUS = $(BONUS:.c=.o)
+DEPS = $(OBJS:.o=.d) $(OBJS_BONUS:.o=.d)
 
 ifdef ALLOW_BONUS
 	OBJ_TEMP = $(OBJS) $(OBJS_BONUS)
-else 
+else
 	OBJ_TEMP = $(OBJS)
 endif
 
 all : $(NAME)
 
+%.o : %.c
+	$(CC) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
+
 $(NAME) : $(OBJ_TEMP)
 	ar -rc libft.a $(OBJ_TEMP)
 
 clean:
-	rm -rf $(OBJS) $(OBJS_BONUS)
+	rm -rf $(OBJS) $(OBJS_BONUS) $(DEPS)
 
 bonus: $(OBJ_TEMP)
 	# sleep 1
@@ -44,4 +49,6 @@ fclean: clean
 
 re : fclean all
 
-.PHONY : all clean fclean re 
+-include $(DEPS)
+
+.PHONY : all clean fclean re bonus

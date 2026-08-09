@@ -45,6 +45,8 @@ make re       # 전체 정리 후 다시 빌드
 
 `make HOSTTYPE=custom`처럼 host 이름을 직접 지정할 수도 있습니다. 빈 값을 명시한 `make HOSTTYPE=`은 자동 감지 fallback을 사용합니다. 변경 사항이 없는 상태에서 `make`를 다시 실행하면 산출물을 재빌드하지 않습니다.
 
+`libft/Makefile`은 `-MMD -MP`로 `.d` 의존성 파일을 생성하고 포함합니다. 따라서 libft 헤더가 바뀌면 관련 object를 다시 빌드할 수 있으며, `clean`은 `.o`와 `.d` 파일을 함께 정리합니다.
+
 ## 메모리 모델
 
 현재 구조는 `box`와 `tag`를 중심으로 잡혀 있습니다.
@@ -101,7 +103,7 @@ make re       # 전체 정리 후 다시 빌드
 
 `includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
 
-공식 `norminette`는 아직 설치되어 있지 않으며, 설치 후 전체 검사가 필요합니다. `includes/ft_malloc.h`, `src/*.c`, `Makefile`의 표준 42 파일 헤더 추가와 `libft/Makefile`이 libft 헤더 변경 시 관련 object를 증분 재컴파일하지 않는 기존 헤더 의존성 문제도 남아 있습니다. thread safety와 bonus 기능, 제자리 `realloc` 확장 및 축소 후 남은 capacity split은 향후 범위입니다.
+공식 `norminette`는 아직 설치되어 있지 않으며, 설치 후 전체 검사가 필요합니다. `includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. thread safety와 bonus 기능, 제자리 `realloc` 확장 및 축소 후 남은 capacity split은 향후 범위입니다.
 
 ## show_alloc_mem 검증
 

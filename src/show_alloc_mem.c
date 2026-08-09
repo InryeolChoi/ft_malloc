@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   show_alloc_mem.c                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: inchoi <inchoi@student.42Seoul.kr>         +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/09 17:54:56 by inchoi            #+#    #+#             */
+/*   Updated: 2026/08/09 17:54:56 by inchoi           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "ft_malloc.h"
 
 void	show_alloc_mem(void)
@@ -29,7 +41,7 @@ void	print_boxes(char *str, t_box *box)
 	{
 		cur = find_next_box(box, prev);
 		if (!cur)
-			break;
+			break ;
 		ft_printf("%s : %p\n", str, cur);
 		print_all_tags(cur);
 		prev = cur;

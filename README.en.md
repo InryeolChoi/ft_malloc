@@ -44,6 +44,8 @@ make re       # Clean everything and rebuild
 
 A host name can also be supplied explicitly, as in `make HOSTTYPE=custom`. Passing an empty value with `make HOSTTYPE=` invokes automatic host detection. Running `make` again with no changes does not rebuild the outputs.
 
+`libft/Makefile` now generates and includes `.d` dependency files with `-MMD -MP`. This allows related objects to rebuild when libft headers change, and `clean` removes both `.o` and `.d` files.
+
 ## Memory Model
 
 The current design is centered around `box` and `tag` metadata.
@@ -100,7 +102,7 @@ The empty/one/five/mixed/tail `find_next_box` cases and deterministic ascending-
 
 The includes and prototypes in `includes/ft_malloc.h` are organized as public API, size/overflow, box/list, tag/allocation, display, free/coalescing, and realloc helpers. The header passes the syntax and `-Wmissing-prototypes` checks.
 
-The official `norminette` is not installed yet, so a full check remains to be run after installation. Standard 42 file headers still need to be added to `includes/ft_malloc.h`, `src/*.c`, and `Makefile`. The existing header-dependency issue in `libft/Makefile`, where changing a libft header does not incrementally rebuild the affected objects, also remains. Thread safety, bonus functionality, in-place `realloc` growth, and splitting unused capacity after a shrink remain future work.
+The official `norminette` is not installed yet, so a full check remains to be run after installation. Standard 42 file headers have been added to `includes/ft_malloc.h`, `src/*.c`, and the root `Makefile`. `libft/Makefile` has also been improved to use `.d` dependency files. Thread safety, bonus functionality, in-place `realloc` growth, and splitting unused capacity after a shrink remain future work.
 
 ## show_alloc_mem Checks
 
