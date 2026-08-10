@@ -22,13 +22,14 @@
 - `src/support_tags.c`: Tag/user address conversion and tag lookup inside a box
 - `src/support_size.c`: Alignment, page-size, zone-payload, and box-size calculation
 - `src/utils.c`: Overflow-safe addition and multiplication helpers
+- `src/support_thread.c`: Per-zone pthread mutex initialization and lock/unlock control
 - `libft/`: Assignment libft extended with `ft_printf`, get_next_line, and related utilities
 - `Makefile`: Build and cleanup rules for libft and the allocator shared library
 - `.clangd`: Include path configuration for `includes/` and `libft/`
 
 ## Build
 
-The root Makefile builds `libft/libft.a` first, then links the allocator objects into a shared library. When `HOSTTYPE` is unset or passed as an empty environment or command-line value, it falls back to a value composed from `uname -m` and `uname -s`. On Apple Silicon macOS, for example, the build produces:
+The root Makefile builds `libft/libft.a` first, then links the allocator objects into a shared library. Allocator compilation and linking use `-pthread` for the ongoing pthread-based thread-safety work. When `HOSTTYPE` is unset or passed as an empty environment or command-line value, it falls back to a value composed from `uname -m` and `uname -s`. On Apple Silicon macOS, for example, the build produces:
 
 - `libft_malloc_arm64_Darwin.so`: Host-specific shared library
 - `libft_malloc.so`: Symbolic link to the host-specific file
@@ -55,6 +56,7 @@ The current design is centered around `box` and `tag` metadata.
 - `capacity`: Aligned payload capacity managed by a tag.
 - `origin_size`: Original user-requested size used for output and statistics.
 - `t_malloc_state`: Global state that tracks TINY, SMALL, and LARGE box lists.
+- `t_thread_state`: Holds a pthread mutex for each TINY, SMALL, and LARGE zone.
 - `TAG_MAGIC`: Magic value used to validate tag metadata.
 - `ALIGNMENT`: 16-byte alignment used for payload and metadata placement.
 - `TINY_MAX`: Requests up to 128 bytes are classified as TINY.
@@ -93,6 +95,8 @@ The current design is centered around `box` and `tag` metadata.
 - Growth beyond capacity allocates a new area, copies existing data, then frees the old area
 - A failed growth allocation returns `NULL` and preserves the old allocation
 - `realloc(ptr, 0)` currently allocates a new 1-byte area before freeing the old area
+- `control_mutex(type, action)` selects `MUTEX_LOCK` or `MUTEX_UNLOCK` for a zone mutex and rejects invalid types or actions
+- The box/tag lookup and mutation path in `malloc` is protected by its zone mutex
 
 ## Status
 
@@ -102,7 +106,7 @@ The empty/one/five/mixed/tail `find_next_box` cases and deterministic ascending-
 
 The includes and prototypes in `includes/ft_malloc.h` are organized as public API, size/overflow, box/list, tag/allocation, display, free/coalescing, and realloc helpers. The header passes the syntax and `-Wmissing-prototypes` checks.
 
-The official `norminette` is not installed yet, so a full check remains to be run after installation. Standard 42 file headers have been added to `includes/ft_malloc.h`, `src/*.c`, and the root `Makefile`. `libft/Makefile` has also been improved to use `.d` dependency files. Thread safety, bonus functionality, in-place `realloc` growth, and splitting unused capacity after a shrink remain future work.
+Standard 42 file headers have been added to `includes/ft_malloc.h`, `src/*.c`, and the root `Makefile`. `libft/Makefile` has also been improved to use `.d` dependency files. Bonus thread-safety work has started: `t_thread_state` and `control_mutex` are in place, and currently only the `malloc` path is protected by a per-zone mutex. `free`, `realloc`, and `show_alloc_mem` are not yet fully thread-safe. The next steps are to design their locking strategies and run multithreaded stress tests. In-place `realloc` growth and splitting unused capacity after a shrink also remain future work.
 
 ## show_alloc_mem Checks
 

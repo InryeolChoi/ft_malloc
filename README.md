@@ -23,13 +23,14 @@
 - `src/support_tags.c`: tag와 user area 사이의 주소 변환, box 내부 tag 탐색
 - `src/support_size.c`: 정렬, 페이지 크기, zone payload와 box 크기 계산
 - `src/utils.c`: overflow 방지 덧셈/곱셈 헬퍼
+- `src/support_thread.c`: zone별 pthread mutex 초기화와 lock/unlock 제어
 - `libft/`: `ft_printf`, get_next_line 등을 포함한 과제용 libft
 - `Makefile`: libft와 allocator shared library 빌드 및 정리 규칙
 - `.clangd`: `includes/`, `libft/` include path 설정
 
 ## Build
 
-루트 Makefile은 먼저 `libft/libft.a`를 빌드한 뒤 allocator object를 shared library로 연결합니다. `HOSTTYPE`이 설정되지 않았거나 환경 변수 또는 명령행에서 빈 값으로 전달되면 `uname -m`과 `uname -s`를 조합한 값으로 대체합니다. 예를 들어 Apple Silicon macOS에서는 다음 산출물이 생성됩니다.
+루트 Makefile은 먼저 `libft/libft.a`를 빌드한 뒤 allocator object를 shared library로 연결합니다. pthread 기반 thread safety 작업을 위해 allocator의 컴파일과 링크에는 `-pthread`를 사용합니다. `HOSTTYPE`이 설정되지 않았거나 환경 변수 또는 명령행에서 빈 값으로 전달되면 `uname -m`과 `uname -s`를 조합한 값으로 대체합니다. 예를 들어 Apple Silicon macOS에서는 다음 산출물이 생성됩니다.
 
 - `libft_malloc_arm64_Darwin.so`: host별 실제 shared library
 - `libft_malloc.so`: 위 파일을 가리키는 심볼릭 링크
@@ -56,6 +57,7 @@ make re       # 전체 정리 후 다시 빌드
 - `capacity`: 정렬 후 실제로 tag가 관리하는 payload 크기입니다.
 - `origin_size`: 사용자가 원래 요청한 크기로, 출력과 통계에 사용합니다.
 - `t_malloc_state`: TINY, SMALL, LARGE box list를 전역으로 관리합니다.
+- `t_thread_state`: TINY, SMALL, LARGE별 pthread mutex를 보유합니다.
 - `TAG_MAGIC`: tag 무결성을 확인하기 위한 magic value입니다.
 - `ALIGNMENT`: payload와 메타데이터 배치에 사용하는 16-byte 정렬 기준입니다.
 - `TINY_MAX`: 128 bytes 이하 요청을 TINY로 분류합니다.
@@ -94,6 +96,9 @@ make re       # 전체 정리 후 다시 빌드
 - capacity를 넘는 확장 요청은 새 영역을 할당하고 기존 데이터를 복사한 뒤 이전 영역 해제
 - 확장용 새 할당이 실패하면 `NULL`을 반환하고 기존 영역 보존
 - `realloc(ptr, 0)`은 현재 1 byte 영역을 새로 할당한 뒤 기존 영역 해제
+- `control_mutex(type, action)`로 zone mutex의 `MUTEX_LOCK` 또는
+  `MUTEX_UNLOCK` 동작을 선택하고 잘못된 type/action은 거부
+- `malloc`의 box/tag 탐색과 변경 경로를 해당 zone mutex로 보호
 
 ## 진행 상태
 
@@ -103,7 +108,7 @@ make re       # 전체 정리 후 다시 빌드
 
 `includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
 
-공식 `norminette`는 아직 설치되어 있지 않으며, 설치 후 전체 검사가 필요합니다. `includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. thread safety와 bonus 기능, 제자리 `realloc` 확장 및 축소 후 남은 capacity split은 향후 범위입니다.
+`includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. bonus thread-safety 작업을 시작했으며, `t_thread_state`와 `control_mutex`를 추가하고 현재 `malloc` 경로만 zone별 mutex로 보호합니다. 아직 `free`, `realloc`, `show_alloc_mem`은 thread-safe하다고 볼 수 없습니다. 다음 단계는 세 함수의 잠금 전략을 정하고 멀티스레드 스트레스 테스트를 수행하는 것입니다. 제자리 `realloc` 확장 및 축소 후 남은 capacity split도 향후 범위입니다.
 
 ## show_alloc_mem 검증
 

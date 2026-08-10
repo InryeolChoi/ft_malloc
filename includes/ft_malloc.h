@@ -6,18 +6,20 @@
 /*   By: inchoi <inchoi@student.42Seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/09 17:54:56 by inchoi            #+#    #+#             */
-/*   Updated: 2026/08/09 17:54:56 by inchoi           ###   ########.fr       */
+/*   Updated: 2026/08/10 23:13:32 by inchoi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef FT_MALLOC_H
 # define FT_MALLOC_H
 
+# include <pthread.h>
 # include <stddef.h>
 # include <stdint.h>
+
 # include <sys/mman.h>
 # include <unistd.h>
-# include <pthread.h>
+
 # include "libft/libft.h"
 
 # define TINY_MAX 128
@@ -31,6 +33,12 @@ typedef enum e_zone_type
 	ZONE_SMALL,
 	ZONE_LARGE
 }	t_zone_type;
+
+typedef enum e_mutex_action
+{
+	MUTEX_LOCK,
+	MUTEX_UNLOCK
+}	t_mutex_action;
 
 typedef struct s_box
 {
@@ -60,9 +68,9 @@ typedef struct s_malloc_state
 
 typedef struct s_thread_state
 {
-	pthread_mutex_t	tiny;
-	pthread_mutex_t	small;
-	pthread_mutex_t	large;
+	pthread_mutex_t	mutex_tiny;
+	pthread_mutex_t	mutex_small;
+	pthread_mutex_t	mutex_large;
 }	t_thread_state;
 
 extern t_malloc_state	g_malloc;
@@ -72,6 +80,8 @@ void			*malloc(size_t size);
 void			free(void *ptr);
 void			*realloc(void *ptr, size_t size);
 void			show_alloc_mem(void);
+
+int				control_mutex(t_zone_type type, t_mutex_action action);
 
 size_t			get_basic_page_size(void);
 size_t			align_size(size_t size);

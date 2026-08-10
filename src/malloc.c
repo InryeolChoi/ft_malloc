@@ -16,10 +16,10 @@ t_malloc_state	g_malloc = {0};
 
 void	*malloc(size_t size)
 {
-	size_t		boxsize;
-	size_t		origin_size;
-	t_zone_type	type;
-	t_tag		*tag;
+	size_t			boxsize;
+	size_t			origin_size;
+	t_zone_type		type;
+	t_tag			*tag;
 
 	if (size == 0)
 		size = 1;
@@ -29,10 +29,10 @@ void	*malloc(size_t size)
 		return (NULL);
 	type = get_zone_type(origin_size);
 	boxsize = get_box_size(type, size, get_basic_page_size());
-	if (boxsize == 0)
+	if (boxsize == 0 || control_mutex(type, MUTEX_LOCK) != 0)
 		return (NULL);
 	tag = get_tag(origin_size, size, type, boxsize);
-	if (tag == NULL)
+	if (control_mutex(type, MUTEX_UNLOCK) != 0 || tag == NULL)
 		return (NULL);
 	return (tag_to_user(tag));
 }

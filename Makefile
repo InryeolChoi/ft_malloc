@@ -20,6 +20,7 @@ LINK := libft_malloc.so
 CC := cc
 CFLAGS := -Wall -Wextra -Werror -fPIC
 CPPFLAGS := -Iincludes -I.
+THREAD_FLAGS := -pthread
 RM := rm -f
 
 SRC_DIR := src
@@ -35,6 +36,7 @@ SRCS := boxes.c \
 		support_malloc.c \
 		support_size.c \
 		support_tags.c \
+		support_thread.c \
 		utils.c
 
 OBJS := $(SRCS:%.c=$(OBJ_DIR)/%.o)
@@ -52,7 +54,7 @@ endif
 all: $(NAME) $(LINK)
 
 $(NAME): $(OBJS) $(LIBFT)
-	$(CC) $(SHARED_FLAGS) -o $@ $(OBJS) $(LIBFT)
+	$(CC) $(SHARED_FLAGS) $(THREAD_FLAGS) -o $@ $(OBJS) $(LIBFT)
 
 $(LINK): $(NAME)
 	ln -sf $(NAME) $(LINK)
@@ -62,7 +64,7 @@ $(LIBFT): $(LIBFT_SRCS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c includes/ft_malloc.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(THREAD_FLAGS) -c $< -o $@
 
 clean:
 	$(RM) -r $(OBJ_DIR)
