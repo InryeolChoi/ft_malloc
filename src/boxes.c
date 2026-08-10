@@ -6,7 +6,7 @@
 /*   By: inchoi <inchoi@student.42Seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/09 17:54:56 by inchoi            #+#    #+#             */
-/*   Updated: 2026/08/09 17:54:56 by inchoi           ###   ########.fr       */
+/*   Updated: 2026/08/11 00:06:50 by inchoi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,27 +46,38 @@ t_box	*find_box_pool(void *ptr)
 	return (NULL);
 }
 
-t_box	*find_box_list(t_box *box_list, void *ptr)
+t_box	*find_box_and_lock(void *ptr)
 {
-	while (box_list != NULL)
+	t_box		*box;
+	t_zone_type	type;
+
+	type = ZONE_TINY;
+	while (type <= ZONE_LARGE)
 	{
-		if (is_ptr_in_box(box_list, ptr))
-			return (box_list);
-		box_list = box_list->next_box;
+		if (control_mutex(type, MUTEX_LOCK) != 0)
+			return (NULL);
+		box = find_box_list(*get_box_list(type), ptr);
+		if (box != NULL)
+			return (box);
+		if (control_mutex(type, MUTEX_UNLOCK) != 0)
+			return (NULL);
+		type = (t_zone_type)(type + 1);
 	}
 	return (NULL);
 }
 
-int	is_ptr_in_box(t_box *box, void *ptr)
+t_box	*find_box_list(t_box *box_list, void *ptr)
 {
-	char	*newptr;
-	char	*start;
-	char	*end;
+	uintptr_t	address;
+	uintptr_t	start;
 
-	newptr = (char *)ptr;
-	start = (char *)(box->start);
-	end = start + box->size;
-	if (start <= newptr && newptr < end)
-		return (1);
-	return (0);
+	address = (uintptr_t)ptr;
+	while (box_list != NULL)
+	{
+		start = (uintptr_t)box_list->start;
+		if (address >= start && address - start < box_list->size)
+			return (box_list);
+		box_list = box_list->next_box;
+	}
+	return (NULL);
 }

@@ -6,7 +6,7 @@
 /*   By: inchoi <inchoi@student.42Seoul.kr>         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/09 17:54:56 by inchoi            #+#    #+#             */
-/*   Updated: 2026/08/10 23:13:32 by inchoi           ###   ########.fr       */
+/*   Updated: 2026/08/11 00:18:36 by inchoi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,8 +93,8 @@ size_t			will_multi_overflow(size_t num1, size_t num2);
 t_zone_type		get_zone_type(size_t size);
 t_box			**get_box_list(t_zone_type type);
 t_box			*find_box_pool(void *ptr);
+t_box			*find_box_and_lock(void *ptr);
 t_box			*find_box_list(t_box *box_list, void *ptr);
-int				is_ptr_in_box(t_box *box, void *ptr);
 t_box			*create_box(t_zone_type type, size_t boxsize);
 void			connect_to_boxlist(t_box *box);
 

@@ -14,23 +14,27 @@
 
 void	free(void *ptr)
 {
-	t_box	*box;
-	t_tag	*tag;
+	t_box		*box;
+	t_tag		*tag;
+	t_zone_type	type;
 
 	if (ptr == NULL)
 		return ;
-	box = find_box_pool(ptr);
+	box = find_box_and_lock(ptr);
 	if (box == NULL)
 		return ;
+	type = box->type;
 	tag = find_tag_in_box(box, ptr);
-	if (tag == NULL || tag->is_free == 1)
-		return ;
-	tag->origin_size = 0;
-	tag->is_free = 1;
-	tag = merge_with_prev(tag);
-	tag = merge_with_next(tag);
-	if (can_unmap_box(box, tag) == 1)
-		unmap_box(box);
+	if (tag != NULL && tag->is_free == 0)
+	{
+		tag->origin_size = 0;
+		tag->is_free = 1;
+		tag = merge_with_prev(tag);
+		tag = merge_with_next(tag);
+		if (can_unmap_box(box, tag) == 1)
+			unmap_box(box);
+	}
+	(void)control_mutex(type, MUTEX_UNLOCK);
 }
 
 t_tag	*merge_with_prev(t_tag *tag)
