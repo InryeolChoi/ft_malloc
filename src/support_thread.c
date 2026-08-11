@@ -36,3 +36,35 @@ int	control_mutex(t_zone_type type, t_mutex_action action)
 		return (pthread_mutex_unlock(mutex));
 	return (1);
 }
+
+int	lock_all_mutex(void)
+{
+	if (pthread_mutex_lock(&g_thread.mutex_tiny) != 0)
+		return (1);
+	if (pthread_mutex_lock(&g_thread.mutex_small) != 0)
+	{
+		pthread_mutex_unlock(&g_thread.mutex_tiny);
+		return (1);
+	}
+	if (pthread_mutex_lock(&g_thread.mutex_large) != 0)
+	{
+		pthread_mutex_unlock(&g_thread.mutex_small);
+		pthread_mutex_unlock(&g_thread.mutex_tiny);
+		return (1);
+	}
+	return (0);
+}
+
+int	unlock_all_mutex(void)
+{
+	int	failed;
+
+	failed = 0;
+	if (pthread_mutex_unlock(&g_thread.mutex_large) != 0)
+		failed = 1;
+	if (pthread_mutex_unlock(&g_thread.mutex_small) != 0)
+		failed = 1;
+	if (pthread_mutex_unlock(&g_thread.mutex_tiny) != 0)
+		failed = 1;
+	return (failed);
+}

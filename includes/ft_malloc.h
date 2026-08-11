@@ -82,6 +82,8 @@ void			*realloc(void *ptr, size_t size);
 void			show_alloc_mem(void);
 
 int				control_mutex(t_zone_type type, t_mutex_action action);
+int				lock_all_mutex(void);
+int				unlock_all_mutex(void);
 
 size_t			get_basic_page_size(void);
 size_t			align_size(size_t size);

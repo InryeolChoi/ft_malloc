@@ -19,6 +19,8 @@ void	show_alloc_mem(void)
 	t_box	*large;
 	size_t	total;
 
+	if (lock_all_mutex() != 0)
+		return ;
 	tiny = g_malloc.tiny_boxes;
 	small = g_malloc.small_boxes;
 	large = g_malloc.large_boxes;
@@ -29,6 +31,7 @@ void	show_alloc_mem(void)
 	write(1, "TOTAL : ", 8);
 	print_tag_size(total);
 	write(1, " bytes\n", 7);
+	(void)unlock_all_mutex();
 }
 
 void	print_boxes(char *str, t_box *box)
