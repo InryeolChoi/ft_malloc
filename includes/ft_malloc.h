@@ -94,7 +94,6 @@ size_t			will_multi_overflow(size_t num1, size_t num2);
 
 t_zone_type		get_zone_type(size_t size);
 t_box			**get_box_list(t_zone_type type);
-t_box			*find_box_pool(void *ptr);
 t_box			*find_box_and_lock(void *ptr);
 t_box			*find_box_list(t_box *box_list, void *ptr);
 t_box			*create_box(t_zone_type type, size_t boxsize);
@@ -124,8 +123,10 @@ t_tag			*merge_with_next(t_tag *tag);
 int				can_unmap_box(t_box *box, t_tag *tag);
 void			unmap_box(t_box *box);
 
-void			*remake_minptr(void *ptr);
-void			*remake_origin(void *ptr, size_t size, t_tag *tag);
-void			*remake_newptr(void *ptr, size_t size, t_tag *tag);
+void			*remake_minptr(void *ptr, t_zone_type type);
+void			*remake_origin(void *ptr, size_t size, t_tag *tag,
+					t_zone_type type);
+void			*remake_newptr(void *ptr, size_t size, t_tag *tag,
+					t_zone_type type);
 
 #endif

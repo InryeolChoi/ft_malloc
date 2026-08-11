@@ -99,6 +99,14 @@ make re       # 전체 정리 후 다시 빌드
 - `control_mutex(type, action)`로 zone mutex의 `MUTEX_LOCK` 또는
   `MUTEX_UNLOCK` 동작을 선택하고 잘못된 type/action은 거부
 - `malloc`의 box/tag 탐색과 변경 경로를 해당 zone mutex로 보호
+- `free`와 `realloc`은 `find_box_and_lock`으로 box를 찾고 해당 zone
+  mutex의 소유권을 호출 경로가 이어받아 해제
+- `realloc`은 중첩된 `malloc`/`free` 호출 전에 기존 zone mutex를 해제하고,
+  잠금 상태에서 `copy_size`를 저장해 해제 후 tag를 다시 읽지 않음
+- 새 영역 할당에 실패한 `realloc`은 기존 allocation을 그대로 보존
+- 더 이상 사용하지 않는 `find_box_pool`을 제거하고 box 탐색을
+  `find_box_and_lock`으로 통일
+- `show_alloc_mem`은 출력 중 세 zone mutex를 모두 잠가 일관된 상태를 순회
 
 ## 진행 상태
 
@@ -108,7 +116,25 @@ make re       # 전체 정리 후 다시 빌드
 
 `includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
 
-`includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. bonus thread-safety 작업을 시작했으며, `t_thread_state`와 `control_mutex`를 추가하고 현재 `malloc` 경로만 zone별 mutex로 보호합니다. 아직 `free`, `realloc`, `show_alloc_mem`은 thread-safe하다고 볼 수 없습니다. 다음 단계는 세 함수의 잠금 전략을 정하고 멀티스레드 스트레스 테스트를 수행하는 것입니다. 제자리 `realloc` 확장 및 축소 후 남은 capacity split도 향후 범위입니다.
+`includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. bonus thread-safety 구현은 zone별 mutex를 사용하며, `malloc`, `free`, `realloc`은 필요한 zone만 잠급니다. `realloc`은 `find_box_and_lock`이 넘긴 잠금 소유권을 각 반환 경로에서 정리하고, 중첩된 `malloc`/`free` 호출 전에는 잠금을 해제합니다. `show_alloc_mem`은 세 zone을 모두 잠근 동안 출력합니다. `realloc` 기본 동작은 60/60 케이스를 통과했고, 6회의 멀티스레드 스트레스 검사에서 allocator 작업 54,000회, `show_alloc_mem` 호출 720회, 무결성 검사 179,910회를 오류 없이 완료했습니다. 제자리 확장 및 축소 후 남은 capacity split은 향후 범위입니다.
+
+## Thread Safety Status
+
+- `malloc`, `free`, and `realloc` protect only the zone they access.
+- `free` and `realloc` use `find_box_and_lock`, then release the acquired zone
+  mutex on every exit path that owns it.
+- `realloc` unlocks before nested `malloc` or `free` calls to avoid recursive
+  locking. It captures `copy_size` while locked and does not read the old tag
+  after releasing the mutex.
+- If a new allocation fails, `realloc` returns `NULL` and preserves the original
+  allocation.
+- `show_alloc_mem` locks all three zones while traversing and printing allocator
+  state.
+
+The `realloc` locking flow passed all 60 basic semantic cases and six stress
+runs totaling 54,000 allocator operations, 720 `show_alloc_mem` calls, and
+179,910 integrity checks, with no deadlocks, crashes, corruption, or stale
+locks.
 
 ## show_alloc_mem 검증
 
