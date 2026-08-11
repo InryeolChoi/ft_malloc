@@ -33,6 +33,7 @@ SRCS := boxes.c \
 		malloc.c \
 		realloc.c \
 		show_alloc_mem.c \
+		show_alloc_mem_ex.c \
 		support_malloc.c \
 		support_size.c \
 		support_tags.c \
