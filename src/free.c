@@ -88,13 +88,26 @@ int	can_unmap_box(t_box *box, t_tag *tag)
 
 void	unmap_box(t_box *box)
 {
-	t_box	**link;
+	t_box		*current;
+	t_box		*previous;
+	t_box		*next;
+	t_zone_type	type;
 
-	link = get_box_list(box->type);
-	while ((*link) != NULL && (*link) != box)
-		link = &((*link)->next_box);
-	if ((*link) != box)
+	type = box->type;
+	current = *(get_box_list(type));
+	previous = NULL;
+	while (current != NULL && current != box)
+	{
+		previous = current;
+		current = current->next_box;
+	}
+	if (current == NULL)
 		return ;
-	(*link) = box->next_box;
-	munmap(box, box->size);
+	next = current->next_box;
+	if (munmap(current, current->size) != 0)
+		return ;
+	if (previous == NULL)
+		*(get_box_list(type)) = next;
+	else
+		previous->next_box = next;
 }

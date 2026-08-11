@@ -83,6 +83,9 @@ make re       # 전체 정리 후 다시 빌드
 - LARGE 요청은 기존 free tag 재사용 없이 요청마다 별도 box 생성
 - LARGE box가 완전히 free 상태가 되면 box list에서 제거하고 `munmap`
 - TINY/SMALL box가 완전히 free 상태이고 같은 zone에 다른 box가 남아 있으면 box list에서 제거하고 `munmap`
+- `unmap_box`는 zone lock을 유지한 채 `next_box`와 type을 보존하고
+  `munmap`을 먼저 호출하며, 성공한 경우에만 head 또는 이전 box의 link를 갱신
+- `munmap`이 실패하면 box list를 변경하지 않아 allocator가 해당 box를 계속 추적
 - 정렬된 요청 크기를 기준으로 tag 할당 및 남은 공간 분할
 - tag split은 TINY/SMALL 크기 요청에서만 수행
 - 원래 요청 크기와 정렬된 capacity를 분리해 저장
@@ -112,6 +115,15 @@ make re       # 전체 정리 후 다시 빌드
 
 현재 `malloc`의 box 생성, TINY/SMALL free tag 재사용과 split, LARGE 전용 box 할당, 비어 있는 box의 조건부 `munmap`, 정렬 처리, 기본 `free`, 인접 free tag 병합, 기본 `realloc`, 주소순 `show_alloc_mem` 출력 흐름이 구현된 상태입니다. 전체 소스는 `-Wall -Wextra -Werror -Wmissing-prototypes` 문법 검사를 통과하며 루트 Makefile로 shared library를 빌드할 수 있습니다.
 
+Mandatory 구현과 제출 검증을 완료했습니다. 새 `unmap_box`는 첫 번째, 중간,
+마지막 box 제거와 주입된 `munmap` 실패 시 list 보존을 포함해 176/176
+케이스를 통과했습니다. macOS `DYLD` flat namespace interposition에서
+`malloc`, `free`, `realloc`, `show_alloc_mem` export와 경계값 동작을
+확인했습니다. 공식 Norminette 3.3.59 결과는 Error 0건이며,
+`GLOBAL_VAR_DETECTED` Notice 4건만 남았습니다. Bonus는 zone별 thread
+safety와 free tag 병합까지 구현했으며, `show_alloc_mem_ex`와 malloc debug
+환경변수는 이후 범위입니다.
+
 `find_next_box`의 empty/one/five/mixed/tail 케이스와 `print_boxes`/`show_alloc_mem`의 결정적 주소 오름차순 출력을 각각 5회 반복해 통과했습니다. malloc/free/realloc의 zone 분류, split, 재사용, 병합, LARGE `munmap`, realloc 회귀 검사도 각각 5회 반복해 통과했습니다. shared library의 `malloc`, `free`, `realloc`, `show_alloc_mem` 필수 심볼 export를 확인했으며 timeout 발생은 0건이었습니다.
 
 `includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
@@ -130,11 +142,26 @@ make re       # 전체 정리 후 다시 빌드
   allocation.
 - `show_alloc_mem` locks all three zones while traversing and printing allocator
   state.
+- `unmap_box` keeps the zone locked, saves the next box and zone type, and calls
+  `munmap` before changing the list. On failure the list remains unchanged; on
+  success it updates either the list head or the previous box link.
 
 The `realloc` locking flow passed all 60 basic semantic cases and six stress
 runs totaling 54,000 allocator operations, 720 `show_alloc_mem` calls, and
 179,910 integrity checks, with no deadlocks, crashes, corruption, or stale
 locks.
+
+## Project Progress
+
+Mandatory implementation and submission verification are complete. The new
+`unmap_box` path passed 176/176 cases covering first, middle, and last box
+removal, plus injected `munmap` failure with list preservation. Actual macOS
+`DYLD` flat-namespace interposition passed with exported `malloc`, `free`,
+`realloc`, and `show_alloc_mem` symbols and boundary-size checks. Official
+Norminette 3.3.59 reported zero Errors and four `GLOBAL_VAR_DETECTED` Notices.
+Bonus work currently includes zone-level thread safety and free-tag coalescing;
+`show_alloc_mem_ex` and malloc debug environment variables remain to be
+implemented.
 
 ## show_alloc_mem 검증
 
