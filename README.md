@@ -1,7 +1,8 @@
 # ft_malloc
 [English version](README.en.md)
 
-`ft_malloc`는 C로 `malloc`, `free`, `realloc`, `show_alloc_mem`을 직접 구현하는 메모리 할당자 프로젝트입니다.
+`ft_malloc`는 C로 `malloc`, `free`, `realloc`, `show_alloc_mem`,
+`show_alloc_mem_ex`를 직접 구현하는 메모리 할당자 프로젝트입니다.
 
 ## 목표
 
@@ -18,10 +19,11 @@
 - `src/free.c`: 포인터가 속한 box/tag를 찾아 해제하고 인접 free tag를 병합하는 `free`
 - `src/realloc.c`: 포인터 검증, 축소, 재할당과 데이터 복사를 처리하는 기본 `realloc` 구현
 - `src/show_alloc_mem.c`: zone별 box를 주소순으로 선택해 할당 범위, 요청 크기, 전체 할당량 출력
+- `src/show_alloc_mem_ex.c`: 사용 중인 user area를 16바이트 단위 hexadecimal dump로 출력
 - `src/boxes.c`: zone type 판별, box list 접근, 포인터가 속한 box 탐색 헬퍼
 - `src/support_malloc.c`: box 연결, 최초 tag 생성, tag split 및 연결 헬퍼
 - `src/support_tags.c`: tag와 user area 사이의 주소 변환, box 내부 tag 탐색
-- `src/support_size.c`: 정렬, 페이지 크기, zone payload와 box 크기 계산
+- `src/support_size.c`: 정렬, 페이지 크기, box content와 최종 box 크기 계산
 - `src/utils.c`: overflow 방지 덧셈/곱셈 헬퍼
 - `src/support_thread.c`: zone별 pthread mutex 초기화와 lock/unlock 제어
 - `libft/`: `ft_printf`, get_next_line 등을 포함한 과제용 libft
@@ -54,12 +56,12 @@ make re       # 전체 정리 후 다시 빌드
 
 - `t_box`: mmap으로 확보한 메모리 영역을 나타냅니다.
 - `t_tag`: 사용자에게 반환되는 영역 앞에 위치하는 메타데이터입니다.
-- `capacity`: 정렬 후 실제로 tag가 관리하는 payload 크기입니다.
+- `capacity`: 정렬 후 실제로 tag가 관리하는 user area 크기입니다.
 - `origin_size`: 사용자가 원래 요청한 크기로, 출력과 통계에 사용합니다.
 - `t_malloc_state`: TINY, SMALL, LARGE box list를 전역으로 관리합니다.
 - `t_thread_state`: TINY, SMALL, LARGE별 pthread mutex를 보유합니다.
 - `TAG_MAGIC`: tag 무결성을 확인하기 위한 magic value입니다.
-- `ALIGNMENT`: payload와 메타데이터 배치에 사용하는 16-byte 정렬 기준입니다.
+- `ALIGNMENT`: user area와 메타데이터 배치에 사용하는 16-byte 정렬 기준입니다.
 - `TINY_MAX`: 128 bytes 이하 요청을 TINY로 분류합니다.
 - `SMALL_MAX`: 1024 bytes 이하 요청을 SMALL로 분류합니다.
 
@@ -110,6 +112,10 @@ make re       # 전체 정리 후 다시 빌드
 - 더 이상 사용하지 않는 `find_box_pool`을 제거하고 box 탐색을
   `find_box_and_lock`으로 통일
 - `show_alloc_mem`은 출력 중 세 zone mutex를 모두 잠가 일관된 상태를 순회
+- `show_alloc_mem_ex`는 사용 중인 tag의 user area를 `origin_size`만큼
+  16바이트 단위 hexadecimal dump로 출력
+- `show_alloc_mem_ex`도 세 zone mutex를 잠가 free 또는 `munmap`과 동시에
+  메모리를 읽지 않도록 보호
 
 ## 진행 상태
 
@@ -121,8 +127,8 @@ Mandatory 구현과 제출 검증을 완료했습니다. 새 `unmap_box`는 첫 
 `malloc`, `free`, `realloc`, `show_alloc_mem` export와 경계값 동작을
 확인했습니다. 공식 Norminette 3.3.59 결과는 Error 0건이며,
 `GLOBAL_VAR_DETECTED` Notice 4건만 남았습니다. Bonus는 zone별 thread
-safety와 free tag 병합까지 구현했으며, `show_alloc_mem_ex`와 malloc debug
-환경변수는 이후 범위입니다.
+safety, free tag 병합, `show_alloc_mem_ex` hexadecimal dump까지 구현했으며,
+malloc debug 환경변수는 이후 범위입니다.
 
 `find_next_box`의 empty/one/five/mixed/tail 케이스와 `print_boxes`/`show_alloc_mem`의 결정적 주소 오름차순 출력을 각각 5회 반복해 통과했습니다. malloc/free/realloc의 zone 분류, split, 재사용, 병합, LARGE `munmap`, realloc 회귀 검사도 각각 5회 반복해 통과했습니다. shared library의 `malloc`, `free`, `realloc`, `show_alloc_mem` 필수 심볼 export를 확인했으며 timeout 발생은 0건이었습니다.
 
@@ -142,6 +148,7 @@ safety와 free tag 병합까지 구현했으며, `show_alloc_mem_ex`와 malloc d
   allocation.
 - `show_alloc_mem` locks all three zones while traversing and printing allocator
   state.
+- `show_alloc_mem_ex` uses the same all-zone lock while dumping live user areas.
 - `unmap_box` keeps the zone locked, saves the next box and zone type, and calls
   `munmap` before changing the list. On failure the list remains unchanged; on
   success it updates either the list head or the previous box link.
@@ -159,9 +166,9 @@ removal, plus injected `munmap` failure with list preservation. Actual macOS
 `DYLD` flat-namespace interposition passed with exported `malloc`, `free`,
 `realloc`, and `show_alloc_mem` symbols and boundary-size checks. Official
 Norminette 3.3.59 reported zero Errors and four `GLOBAL_VAR_DETECTED` Notices.
-Bonus work currently includes zone-level thread safety and free-tag coalescing;
-`show_alloc_mem_ex` and malloc debug environment variables remain to be
-implemented.
+Bonus work currently includes zone-level thread safety, free-tag coalescing,
+and the `show_alloc_mem_ex` hexadecimal dump. Malloc debug environment
+variables remain to be implemented.
 
 ## show_alloc_mem 검증
 
@@ -170,3 +177,15 @@ implemented.
 현재 `malloc(0)`은 내부에서 1 byte 요청으로 정규화되어 `origin_size`도 1로 출력됩니다. `free()`는 tag를 free 상태로 바꾸면서 `origin_size`를 0으로 되돌리고, 같은 box 안에서 앞뒤로 맞닿은 free tag를 병합합니다. LARGE 요청은 현재 재사용 가능한 tag 탐색 대상에서 제외되어 매번 새 box를 확보하고, split도 수행하지 않으며, 해제 후 box 전체가 비면 box list에서 제거한 뒤 `munmap`합니다. TINY/SMALL box도 전체가 비고 같은 zone에 다른 box가 남아 있으면 `munmap` 대상이 됩니다.
 
 각 zone의 box 출력은 `find_next_box`가 직전에 선택한 주소보다 큰 box 중 `uintptr_t` 기준 최솟값을 전체 box list에서 다시 찾는 방식입니다. 따라서 box 생성 순서나 `mmap` 반환 순서와 관계없이 주소 오름차순으로 선택하며, 해당 zone의 box 수를 n이라 할 때 O(n^2) 시간과 O(1) 추가 메모리를 사용합니다. 이 과정은 임시 allocation을 만들거나 `t_box`에 출력 여부 플래그를 추가하지 않습니다. empty/one/five/mixed/tail 선택과 결정적 주소 오름차순 출력은 각각 5회 반복 검사를 통과했습니다.
+
+## show_alloc_mem_ex 검증
+
+`show_alloc_mem_ex`는 free tag와 정렬 여유 공간을 제외하고, 사용 중인
+user area를 `origin_size`만큼 두 자리 hexadecimal 값으로 출력합니다.
+각 행은 최대 16바이트이며 행의 시작 주소를 함께 표시합니다.
+
+1, 15, 16, 17바이트 경계, TINY/SMALL/LARGE 동시 출력, free된 allocation
+제외, realloc 전후 데이터 보존과 총합을 검사했습니다. 6개 worker가 실행당
+2,400회의 malloc/realloc/free를 수행하는 동안 확장 출력을 80회 호출하는
+스트레스를 10회 반복했고, 교착·손상·stale lock 없이 10/10 통과했습니다.
+공식 Norminette 3.3.59는 Error 0건과 전역변수 Notice 4건을 보고했습니다.

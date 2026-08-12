@@ -67,19 +67,40 @@ void	print_all_tags_ex(t_box *box)
 			ft_printf("%p - %p : ", tag_start, tag_end);
 			print_tag_size(tag->origin_size);
 			write(1, " bytes\n", 7);
-			print_payload();
+			print_user_area((unsigned char *)tag_to_user(tag),
+				tag->origin_size);
 		}
 		tag = tag->next_tag;
 	}
 }
 
-void	print_payload(unsigned char *payload, size_t size)
+void	print_user_area(unsigned char *user_area, size_t size)
 {
+	size_t	index;
 
+	index = 0;
+	while (index < size)
+	{
+		if (index % 16 == 0)
+		{
+			if (index != 0)
+				write(1, "\n", 1);
+			ft_printf("%p ", user_area + index);
+		}
+		print_hex_byte(user_area[index]);
+		write(1, " ", 1);
+		index++;
+	}
+	write(1, "\n", 1);
 }
-
 
 void	print_hex_byte(unsigned char byte)
 {
+	char	*hex;
+	char	output[2];
 
+	hex = "0123456789abcdef";
+	output[0] = hex[byte / 16];
+	output[1] = hex[byte % 16];
+	write(1, output, 2);
 }

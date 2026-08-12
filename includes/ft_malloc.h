@@ -89,7 +89,7 @@ int				unlock_all_mutex(void);
 size_t			get_basic_page_size(void);
 size_t			align_size(size_t size);
 size_t			get_box_size(t_zone_type type, size_t user_size, size_t page);
-size_t			get_zone_payload(t_zone_type type, size_t user_size);
+size_t			get_box_content_size(t_zone_type type, size_t user_size);
 size_t			will_add_overflow(size_t num1, size_t num2);
 size_t			will_multi_overflow(size_t num1, size_t num2);
 
@@ -118,6 +118,10 @@ t_box			*find_next_box(t_box *box, t_box *prev);
 void			print_all_tags(t_box *box);
 size_t			sum_tag_size(t_box *box);
 void			print_tag_size(size_t size);
+void			print_boxes_ex(char *str, t_box *box);
+void			print_all_tags_ex(t_box *box);
+void			print_user_area(unsigned char *user_area, size_t size);
+void			print_hex_byte(unsigned char byte);
 
 t_tag			*merge_with_prev(t_tag *tag);
 t_tag			*merge_with_next(t_tag *tag);

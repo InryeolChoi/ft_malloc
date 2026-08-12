@@ -1,6 +1,7 @@
 # ft_malloc
 
-`ft_malloc` is a memory allocator project for implementing `malloc`, `free`, `realloc`, and `show_alloc_mem` directly in C.
+`ft_malloc` is a memory allocator project for implementing `malloc`, `free`,
+`realloc`, `show_alloc_mem`, and `show_alloc_mem_ex` directly in C.
 
 ## Goals
 
@@ -17,10 +18,11 @@
 - `src/free.c`: `free` flow that finds the owning box/tag, releases it, and merges adjacent free tags
 - `src/realloc.c`: Basic `realloc` implementation with pointer validation, shrinking, reallocation, and data copying
 - `src/show_alloc_mem.c`: Per-zone boxes selected by address, allocation ranges, requested sizes, and total allocation output
+- `src/show_alloc_mem_ex.c`: Hexadecimal dumps of live user areas in 16-byte rows
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
 - `src/support_malloc.c`: Helpers for box linking, initial tag creation, tag splitting, and tag linking
 - `src/support_tags.c`: Tag/user address conversion and tag lookup inside a box
-- `src/support_size.c`: Alignment, page-size, zone-payload, and box-size calculation
+- `src/support_size.c`: Alignment, page-size, box-content, and final box-size calculation
 - `src/utils.c`: Overflow-safe addition and multiplication helpers
 - `src/support_thread.c`: Per-zone pthread mutex initialization and lock/unlock control
 - `libft/`: Assignment libft extended with `ft_printf`, get_next_line, and related utilities
@@ -53,12 +55,12 @@ The current design is centered around `box` and `tag` metadata.
 
 - `t_box`: Represents a memory area obtained with mmap.
 - `t_tag`: Metadata stored before the user-visible allocation area.
-- `capacity`: Aligned payload capacity managed by a tag.
+- `capacity`: Aligned user-area capacity managed by a tag.
 - `origin_size`: Original user-requested size used for output and statistics.
 - `t_malloc_state`: Global state that tracks TINY, SMALL, and LARGE box lists.
 - `t_thread_state`: Holds a pthread mutex for each TINY, SMALL, and LARGE zone.
 - `TAG_MAGIC`: Magic value used to validate tag metadata.
-- `ALIGNMENT`: 16-byte alignment used for payload and metadata placement.
+- `ALIGNMENT`: 16-byte alignment used for user-area and metadata placement.
 - `TINY_MAX`: Requests up to 128 bytes are classified as TINY.
 - `SMALL_MAX`: Requests up to 1024 bytes are classified as SMALL.
 
@@ -97,16 +99,31 @@ The current design is centered around `box` and `tag` metadata.
 - `realloc(ptr, 0)` currently allocates a new 1-byte area before freeing the old area
 - `control_mutex(type, action)` selects `MUTEX_LOCK` or `MUTEX_UNLOCK` for a zone mutex and rejects invalid types or actions
 - The box/tag lookup and mutation path in `malloc` is protected by its zone mutex
+- `free` and `realloc` acquire the owning zone mutex through `find_box_and_lock`
+- `realloc` unlocks before nested `malloc` or `free` calls and preserves the
+  original allocation when growth fails
+- `show_alloc_mem` and `show_alloc_mem_ex` lock all three zones while reading
+  allocator state
+- `show_alloc_mem_ex` dumps only live user areas, limited to `origin_size`, in
+  rows of at most 16 two-digit hexadecimal bytes
 
 ## Status
 
-Box creation, TINY/SMALL free-tag reuse and splitting, dedicated LARGE box allocation, conditional `munmap` for empty boxes, alignment, basic `free`, adjacent free-tag coalescing, basic `realloc`, and address-ordered `show_alloc_mem` output are now implemented. The current sources pass a `-Wall -Wextra -Werror -Wmissing-prototypes` syntax check, and the root Makefile builds the shared library.
+Mandatory implementation and submission verification are complete. The
+allocator implements box creation, TINY/SMALL reuse and splitting, dedicated
+LARGE mappings, transactional `munmap`, alignment, coalescing, `realloc`, and
+address-ordered `show_alloc_mem` output. Bonus work includes zone-level thread
+safety, free-tag defragmentation, and `show_alloc_mem_ex` hexadecimal dumps.
 
 The empty/one/five/mixed/tail `find_next_box` cases and deterministic ascending-address output from `print_boxes`/`show_alloc_mem` each passed five repeated runs. The malloc/free/realloc regression checks for zone classification, splitting, reuse, coalescing, LARGE `munmap`, and realloc also passed five repeated runs each. The shared library exports the required `malloc`, `free`, `realloc`, and `show_alloc_mem` symbols, and there were zero timeouts.
 
 The includes and prototypes in `includes/ft_malloc.h` are organized as public API, size/overflow, box/list, tag/allocation, display, free/coalescing, and realloc helpers. The header passes the syntax and `-Wmissing-prototypes` checks.
 
-Standard 42 file headers have been added to `includes/ft_malloc.h`, `src/*.c`, and the root `Makefile`. `libft/Makefile` has also been improved to use `.d` dependency files. Bonus thread-safety work has started: `t_thread_state` and `control_mutex` are in place, and currently only the `malloc` path is protected by a per-zone mutex. `free`, `realloc`, and `show_alloc_mem` are not yet fully thread-safe. The next steps are to design their locking strategies and run multithreaded stress tests. In-place `realloc` growth and splitting unused capacity after a shrink also remain future work.
+Standard 42 headers are present in allocator files, and `libft/Makefile` uses
+`.d` dependency files. Official Norminette 3.3.59 reports zero Errors and four
+global-variable Notices. Malloc debug environment variables, allocation
+history, in-place `realloc` growth, and splitting unused capacity after a
+shrink remain future work.
 
 ## show_alloc_mem Checks
 
@@ -115,3 +132,15 @@ The current implementation prints each active tag's start and end address, `orig
 `malloc(0)` is normalized internally to a 1-byte request, so its `origin_size` is also printed as 1. `free()` resets `origin_size` to 0 and coalesces adjacent free tags inside the same box. LARGE requests are currently excluded from reusable tag lookup, allocate a fresh box each time, are not split, and are removed from the box list and released with `munmap` once freed. TINY/SMALL boxes are also eligible for `munmap` when the whole box is free and another box remains in the same zone.
 
 For each zone, `find_next_box` scans the full box list for the lowest `uintptr_t` address above the previously selected box. This selects boxes in ascending address order regardless of box creation order or the order of addresses returned by `mmap`. For n boxes in that zone, ordering takes O(n^2) time and O(1) extra memory, without temporary allocations or a printed flag in `t_box`. The empty/one/five/mixed/tail selection cases and deterministic ascending-address output each passed five repeated runs.
+
+## show_alloc_mem_ex Checks
+
+`show_alloc_mem_ex` skips free tags and alignment slack, then prints exactly
+`origin_size` bytes from each live user area. Every byte uses two hexadecimal
+digits, and each row contains at most 16 bytes with its starting address.
+
+Checks covered 1, 15, 16, and 17-byte boundaries, concurrent TINY/SMALL/LARGE
+allocations, removal of freed allocations from output, and data preservation
+after `realloc`. A stress run used six workers performing 2,400 combined
+malloc/realloc/free operations while calling `show_alloc_mem_ex` 80 times. Ten
+repeated runs completed 10/10 without deadlocks, corruption, or stale locks.
