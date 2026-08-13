@@ -22,9 +22,13 @@ void	free(void *ptr)
 		return ;
 	box = find_box_and_lock(ptr);
 	if (box == NULL)
+	{
+		debug_free_error(NULL);
 		return ;
+	}
 	type = box->type;
 	tag = find_tag_in_box(box, ptr);
+	debug_free_error(tag);
 	if (tag != NULL && tag->is_free == 0)
 	{
 		tag->origin_size = 0;

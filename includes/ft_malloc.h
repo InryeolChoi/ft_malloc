@@ -123,6 +123,8 @@ void			print_all_tags_ex(t_box *box);
 void			print_user_area(unsigned char *user_area, size_t size);
 void			print_hex_byte(unsigned char byte);
 
+void			debug_free_error(t_tag *tag);
+
 t_tag			*merge_with_prev(t_tag *tag);
 t_tag			*merge_with_next(t_tag *tag);
 int				can_unmap_box(t_box *box, t_tag *tag);

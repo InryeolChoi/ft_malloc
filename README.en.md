@@ -25,6 +25,7 @@
 - `src/support_size.c`: Alignment, page-size, box-content, and final box-size calculation
 - `src/utils.c`: Overflow-safe addition and multiplication helpers
 - `src/support_thread.c`: Per-zone pthread mutex initialization and lock/unlock control
+- `src/support_debug.c`: Malloc debug environment checks and `free` diagnostics
 - `libft/`: Assignment libft extended with `ft_printf`, get_next_line, and related utilities
 - `Makefile`: Build and cleanup rules for libft and the allocator shared library
 - `.clangd`: Include path configuration for `includes/` and `libft/`
@@ -106,6 +107,8 @@ The current design is centered around `box` and `tag` metadata.
   allocator state
 - `show_alloc_mem_ex` dumps only live user areas, limited to `origin_size`, in
   rows of at most 16 two-digit hexadecimal bytes
+- `FT_MALLOC_DEBUG=1` reports pointers outside the allocator or not at an
+  allocation start as invalid frees and reports detectable repeated frees
 
 ## Status
 
@@ -114,6 +117,8 @@ allocator implements box creation, TINY/SMALL reuse and splitting, dedicated
 LARGE mappings, transactional `munmap`, alignment, coalescing, `realloc`, and
 address-ordered `show_alloc_mem` output. Bonus work includes zone-level thread
 safety, free-tag defragmentation, and `show_alloc_mem_ex` hexadecimal dumps.
+Basic invalid-free and double-free diagnostics controlled by
+`FT_MALLOC_DEBUG=1` are also implemented.
 
 The empty/one/five/mixed/tail `find_next_box` cases and deterministic ascending-address output from `print_boxes`/`show_alloc_mem` each passed five repeated runs. The malloc/free/realloc regression checks for zone classification, splitting, reuse, coalescing, LARGE `munmap`, and realloc also passed five repeated runs each. The shared library exports the required `malloc`, `free`, `realloc`, and `show_alloc_mem` symbols, and there were zero timeouts.
 
@@ -121,9 +126,8 @@ The includes and prototypes in `includes/ft_malloc.h` are organized as public AP
 
 Standard 42 headers are present in allocator files, and `libft/Makefile` uses
 `.d` dependency files. Official Norminette 3.3.59 reports zero Errors and four
-global-variable Notices. Malloc debug environment variables, allocation
-history, in-place `realloc` growth, and splitting unused capacity after a
-shrink remain future work.
+global-variable Notices. Allocation history, in-place `realloc` growth, and
+splitting unused capacity after a shrink remain future work.
 
 ## show_alloc_mem Checks
 
@@ -144,3 +148,26 @@ allocations, removal of freed allocations from output, and data preservation
 after `realloc`. A stress run used six workers performing 2,400 combined
 malloc/realloc/free operations while calling `show_alloc_mem_ex` 80 times. Ten
 repeated runs completed 10/10 without deadlocks, corruption, or stale locks.
+
+## Malloc Debug Environment
+
+`free` diagnostics are written to standard error only when
+`FT_MALLOC_DEBUG` is exactly `1`. If the variable is unset or has another
+value, invalid pointers are silently ignored as before.
+
+```sh
+FT_MALLOC_DEBUG=1 ./program
+```
+
+Addresses outside allocator boxes and interior addresses that are not exact
+allocation starts produce `invalid free`. Releasing a free tag that is still
+tracked produces `double free`. Tests against the shared library confirmed
+zero output while disabled and two invalid-free messages plus one double-free
+message while enabled.
+
+Two possible follow-up debug options are intentionally not implemented yet:
+
+- `FT_MALLOC_SCRIBBLE=1`: fill allocated areas with `0xAA` and released areas
+  with `0x55` to make uninitialized reads and use-after-free easier to expose.
+- `FT_MALLOC_ABORT_ON_ERROR=1`: call `abort()` after reporting an invalid or
+  double free so a debugger stops at the failure.
