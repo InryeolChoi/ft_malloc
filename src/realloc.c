@@ -51,6 +51,7 @@ void	*remake_minptr(void *ptr, t_zone_type type)
 
 void	*remake_origin(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 {
+	debug_scribble_resize(tag, size);
 	tag->origin_size = size;
 	(void)control_mutex(type, MUTEX_UNLOCK);
 	return (ptr);

@@ -129,5 +129,6 @@ t_tag	*set_tag(t_tag *tag, size_t origin_size, size_t needed_size)
 	}
 	tag->origin_size = origin_size;
 	tag->is_free = 0;
+	debug_scribble_alloc(tag);
 	return (tag);
 }

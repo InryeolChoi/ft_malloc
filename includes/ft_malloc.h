@@ -124,6 +124,9 @@ void			print_user_area(unsigned char *user_area, size_t size);
 void			print_hex_byte(unsigned char byte);
 
 void			debug_free_error(t_tag *tag);
+void			debug_scribble_alloc(t_tag *tag);
+void			debug_scribble_free(t_tag *tag);
+void			debug_scribble_resize(t_tag *tag, size_t new_size);
 
 t_tag			*merge_with_prev(t_tag *tag);
 t_tag			*merge_with_next(t_tag *tag);

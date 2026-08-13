@@ -22,15 +22,13 @@ void	free(void *ptr)
 		return ;
 	box = find_box_and_lock(ptr);
 	if (box == NULL)
-	{
-		debug_free_error(NULL);
-		return ;
-	}
+		return (debug_free_error(NULL));
 	type = box->type;
 	tag = find_tag_in_box(box, ptr);
 	debug_free_error(tag);
 	if (tag != NULL && tag->is_free == 0)
 	{
+		debug_scribble_free(tag);
 		tag->origin_size = 0;
 		tag->is_free = 1;
 		tag = merge_with_prev(tag);

@@ -25,7 +25,7 @@
 - `src/support_size.c`: Alignment, page-size, box-content, and final box-size calculation
 - `src/utils.c`: Overflow-safe addition and multiplication helpers
 - `src/support_thread.c`: Per-zone pthread mutex initialization and lock/unlock control
-- `src/support_debug.c`: Malloc debug environment checks and `free` diagnostics
+- `src/support_debug.c`: Malloc debug variables, `free` diagnostics, and Scribble handling
 - `libft/`: Assignment libft extended with `ft_printf`, get_next_line, and related utilities
 - `Makefile`: Build and cleanup rules for libft and the allocator shared library
 - `.clangd`: Include path configuration for `includes/` and `libft/`
@@ -109,6 +109,8 @@ The current design is centered around `box` and `tag` metadata.
   rows of at most 16 two-digit hexadecimal bytes
 - `FT_MALLOC_DEBUG=1` reports pointers outside the allocator or not at an
   allocation start as invalid frees and reports detectable repeated frees
+- `FT_MALLOC_SCRIBBLE=1` fills new user areas with `0xAA`, released user areas
+  with `0x55`, and applies the same policy to in-place realloc resizing
 
 ## Status
 
@@ -118,7 +120,8 @@ LARGE mappings, transactional `munmap`, alignment, coalescing, `realloc`, and
 address-ordered `show_alloc_mem` output. Bonus work includes zone-level thread
 safety, free-tag defragmentation, and `show_alloc_mem_ex` hexadecimal dumps.
 Basic invalid-free and double-free diagnostics controlled by
-`FT_MALLOC_DEBUG=1` are also implemented.
+`FT_MALLOC_DEBUG=1` and Scribble patterns controlled by
+`FT_MALLOC_SCRIBBLE=1` are also implemented.
 
 The empty/one/five/mixed/tail `find_next_box` cases and deterministic ascending-address output from `print_boxes`/`show_alloc_mem` each passed five repeated runs. The malloc/free/realloc regression checks for zone classification, splitting, reuse, coalescing, LARGE `munmap`, and realloc also passed five repeated runs each. The shared library exports the required `malloc`, `free`, `realloc`, and `show_alloc_mem` symbols, and there were zero timeouts.
 
@@ -165,9 +168,21 @@ tracked produces `double free`. Tests against the shared library confirmed
 zero output while disabled and two invalid-free messages plus one double-free
 message while enabled.
 
-Two possible follow-up debug options are intentionally not implemented yet:
+`FT_MALLOC_SCRIBBLE=1` fills a new allocation with `0xAA` and fills its user
+area with `0x55` before normal `free` clears the metadata. In-place realloc
+growth fills the newly exposed tail with `0xAA`; shrinking fills the released
+tail with `0x55`. A realloc that moves to a new allocation fills the new area
+first, then copies the old contents, leaving the extended portion as `0xAA`.
 
-- `FT_MALLOC_SCRIBBLE=1`: fill allocated areas with `0xAA` and released areas
-  with `0x55` to make uninitialized reads and use-after-free easier to expose.
+```sh
+FT_MALLOC_SCRIBBLE=1 ./program
+```
+
+Shared-library tests covered the `0xAA`/`0x55` patterns for a 17-byte
+allocation, in-capacity realloc growth and shrink, moved realloc growth, and
+independence between the DEBUG and SCRIBBLE variables.
+
+One possible follow-up debug option is intentionally not implemented yet:
+
 - `FT_MALLOC_ABORT_ON_ERROR=1`: call `abort()` after reporting an invalid or
   double free so a debugger stops at the failure.

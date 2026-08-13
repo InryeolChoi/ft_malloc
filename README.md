@@ -26,7 +26,7 @@
 - `src/support_size.c`: 정렬, 페이지 크기, box content와 최종 box 크기 계산
 - `src/utils.c`: overflow 방지 덧셈/곱셈 헬퍼
 - `src/support_thread.c`: zone별 pthread mutex 초기화와 lock/unlock 제어
-- `src/support_debug.c`: malloc debug 환경변수 확인과 `free` 오류 진단 출력
+- `src/support_debug.c`: malloc debug 환경변수, `free` 진단 및 Scribble 처리
 - `libft/`: `ft_printf`, get_next_line 등을 포함한 과제용 libft
 - `Makefile`: libft와 allocator shared library 빌드 및 정리 규칙
 - `.clangd`: `includes/`, `libft/` include path 설정
@@ -119,6 +119,8 @@ make re       # 전체 정리 후 다시 빌드
   메모리를 읽지 않도록 보호
 - `FT_MALLOC_DEBUG=1`일 때 allocator 밖의 포인터, allocation 시작점이 아닌
   포인터를 invalid free로 출력하고 탐지 가능한 재해제를 double free로 출력
+- `FT_MALLOC_SCRIBBLE=1`일 때 새 user area를 `0xAA`, 해제되는 user area를
+  `0x55`로 채우고 제자리 realloc의 확장·축소 영역에도 같은 정책 적용
 
 ## 진행 상태
 
@@ -131,7 +133,7 @@ Mandatory 구현과 제출 검증을 완료했습니다. 새 `unmap_box`는 첫 
 확인했습니다. 공식 Norminette 3.3.59 결과는 Error 0건이며,
 `GLOBAL_VAR_DETECTED` Notice 4건만 남았습니다. Bonus는 zone별 thread
 safety, free tag 병합, `show_alloc_mem_ex` hexadecimal dump까지 구현했으며,
-기본 malloc debug 환경변수도 구현했습니다.
+기본 malloc debug 진단과 Scribble 환경변수도 구현했습니다.
 
 `find_next_box`의 empty/one/five/mixed/tail 케이스와 `print_boxes`/`show_alloc_mem`의 결정적 주소 오름차순 출력을 각각 5회 반복해 통과했습니다. malloc/free/realloc의 zone 분류, split, 재사용, 병합, LARGE `munmap`, realloc 회귀 검사도 각각 5회 반복해 통과했습니다. shared library의 `malloc`, `free`, `realloc`, `show_alloc_mem` 필수 심볼 export를 확인했으며 timeout 발생은 0건이었습니다.
 
@@ -171,7 +173,8 @@ removal, plus injected `munmap` failure with list preservation. Actual macOS
 Norminette 3.3.59 reported zero Errors and four `GLOBAL_VAR_DETECTED` Notices.
 Bonus work currently includes zone-level thread safety, free-tag coalescing,
 the `show_alloc_mem_ex` hexadecimal dump, and basic invalid/double-free reports
-controlled by `FT_MALLOC_DEBUG=1`.
+controlled by `FT_MALLOC_DEBUG=1`. `FT_MALLOC_SCRIBBLE=1` fills newly exposed
+bytes with `0xAA` and released bytes with `0x55`.
 
 ## show_alloc_mem 검증
 
@@ -208,9 +211,21 @@ allocator의 box 밖 주소와 box 안의 잘못된 중간 주소는 `invalid fr
 비활성 상태의 출력 0바이트와 활성 상태의 두 invalid free 및 한 double free를
 실제 shared library로 확인했습니다.
 
-향후 debug 후보는 두 가지입니다.
+`FT_MALLOC_SCRIBBLE=1`은 새 allocation을 `0xAA`로 채우고 정상 free에서
+metadata를 지우기 전에 user area를 `0x55`로 채웁니다. 제자리 realloc은
+확장된 꼬리를 `0xAA`, 축소로 소유권을 잃은 꼬리를 `0x55`로 채웁니다.
+새 allocation이 필요한 realloc은 먼저 전체를 `0xAA`로 채운 뒤 기존 내용을
+복사하므로 새로 늘어난 부분에는 `0xAA`가 남습니다.
 
-- `FT_MALLOC_SCRIBBLE=1`: 할당 영역을 `0xAA`, 해제 영역을 `0x55`로 채워
-  초기화되지 않은 메모리와 use-after-free를 발견하기 쉽게 만듭니다.
+```sh
+FT_MALLOC_SCRIBBLE=1 ./program
+```
+
+17바이트 malloc/free의 `0xAA`/`0x55` 패턴, capacity 안의 realloc 확장과
+축소, 새 allocation을 사용하는 확장, DEBUG와 SCRIBBLE 환경변수의 독립성을
+실제 shared library로 확인했습니다.
+
+향후 debug 후보는 다음과 같습니다.
+
 - `FT_MALLOC_ABORT_ON_ERROR=1`: invalid free 또는 double free를 출력한 뒤
   `abort()`하여 debugger가 정확한 실패 지점에서 멈추게 합니다.
