@@ -28,6 +28,7 @@
 - `src/utils.c`: overflow 방지 덧셈/곱셈 헬퍼
 - `src/support_thread.c`: zone별 pthread mutex 초기화와 lock/unlock 제어
 - `src/support_debug.c`: malloc debug 환경변수, `free` 진단 및 Scribble 처리
+- `src/support_history.c`: allocation history 기록, 원형 배열 순회와 출력
 - `libft/`: `ft_printf`, get_next_line 등을 포함한 과제용 libft
 - `Makefile`: libft와 allocator shared library 빌드 및 정리 규칙
 - `.clangd`: `includes/`, `libft/` include path 설정
@@ -61,7 +62,7 @@ make re       # 전체 정리 후 다시 빌드
 - `capacity`: 정렬 후 실제로 tag가 관리하는 user area 크기입니다.
 - `origin_size`: 사용자가 원래 요청한 크기로, 출력과 통계에 사용합니다.
 - `t_malloc_state`: TINY, SMALL, LARGE box list를 전역으로 관리합니다.
-- `t_thread_state`: TINY, SMALL, LARGE별 pthread mutex를 보유합니다.
+- `t_thread_state`: TINY, SMALL, LARGE와 allocation history용 pthread mutex를 보유합니다.
 - `TAG_MAGIC`: tag 무결성을 확인하기 위한 magic value입니다.
 - `ALIGNMENT`: user area와 메타데이터 배치에 사용하는 16-byte 정렬 기준입니다.
 - `TINY_MAX`: 128 bytes 이하 요청을 TINY로 분류합니다.
@@ -129,6 +130,9 @@ make re       # 전체 정리 후 다시 빌드
   포인터를 invalid free로 출력하고 탐지 가능한 재해제를 double free로 출력
 - `FT_MALLOC_SCRIBBLE=1`일 때 새 user area를 `0xAA`, 해제되는 user area를
   `0x55`로 채우고 제자리 realloc의 확장·축소 영역에도 같은 정책 적용
+- `FT_MALLOC_HISTORY=1`일 때 `malloc`, `free`, `realloc` 이벤트를 256개
+  고정 크기 원형 배열에 기록하고 `show_alloc_mem_ex` 마지막에 오래된
+  기록부터 출력
 
 ## 진행 상태
 
@@ -163,7 +167,7 @@ allocation으로 이동하고 기존 데이터와 `FT_MALLOC_SCRIBBLE` 동작을
 스트레스 검사에서는 allocator 작업 54,000회, `show_alloc_mem` 호출
 720회, 무결성 검사 179,910회를 오류 없이 완료했습니다. 축소 split은
 기본 분할, 인접 free tag 병합/재사용, LARGE 단일 tag 유지, Scribble과
-20회 반복 검사를 통과했습니다. Allocation history는 향후 범위입니다.
+20회 반복 검사를 통과했습니다.
 
 ## Thread Safety Status
 
@@ -222,6 +226,35 @@ user area를 `origin_size`만큼 두 자리 hexadecimal 값으로 출력합니�
 2,400회의 malloc/realloc/free를 수행하는 동안 확장 출력을 80회 호출하는
 스트레스를 10회 반복했고, 교착·손상·stale lock 없이 10/10 통과했습니다.
 공식 Norminette 3.3.59는 Error 0건과 전역변수 Notice 4건을 보고했습니다.
+
+## Allocation history
+
+`FT_MALLOC_HISTORY`의 값이 정확히 `1`일 때 allocation history를 기록합니다.
+환경변수가 없거나 다른 값이면 기록과 history 출력은 수행하지 않습니다.
+
+```sh
+FT_MALLOC_HISTORY=1 ./program
+```
+
+history는 동적 할당 없이 `g_malloc` 내부의 256개 고정 크기 원형 배열에
+저장됩니다. 각 항목은 증가하는 sequence 번호, 이벤트 type, 이전 포인터,
+새 포인터와 사용자가 요청한 크기를 보관합니다. 배열이 가득 차면 가장 오래된
+항목부터 덮어쓰며, 출력할 때는 현재 남아 있는 기록을 오래된 순서부터
+순회합니다.
+
+`malloc`, `free`, `realloc`의 성공 경로가 각각 이벤트를 기록합니다.
+새 allocation으로 이동하는 `realloc`은 내부에서 `malloc`과 `free`를
+호출하므로, 이 두 상세 이벤트와 최종 `realloc` 이벤트가 함께 남을 수
+있습니다. 이는 내부 동작까지 보존하는 현재 history 정책입니다.
+
+history 배열은 zone mutex와 분리된 전용 history mutex로 보호됩니다.
+`show_alloc_mem_ex`는 allocator의 hexadecimal dump를 마친 뒤 zone mutex를
+해제하고, 마지막에 history mutex를 사용해 기록을 출력합니다.
+
+환경변수 활성화/비활성화, realloc의 제자리 변경·이동·size 0, 600개
+이벤트의 256개 ring wrap과 8개 worker 동시 기록을 각각 10회 검사했습니다.
+모든 실행에서 오래된 `#344`부터 최신 `#599`까지 순서대로 출력됐으며,
+교착, timeout 또는 tag 연결 손상은 없었습니다.
 
 ## malloc debug 환경변수
 

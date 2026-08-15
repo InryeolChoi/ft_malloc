@@ -12,7 +12,7 @@
 
 #include "ft_malloc.h"
 
-static int	is_env_enabled(const char *name)
+int	is_env_enabled(const char *name)
 {
 	char	*val;
 

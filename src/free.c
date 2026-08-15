@@ -17,7 +17,9 @@ void	free(void *ptr)
 	t_box		*box;
 	t_tag		*tag;
 	t_zone_type	type;
+	size_t		freed_size;
 
+	freed_size = 0;
 	if (ptr == NULL)
 		return ;
 	box = find_box_and_lock(ptr);
@@ -27,44 +29,40 @@ void	free(void *ptr)
 	tag = find_tag_in_box(box, ptr);
 	debug_free_error(tag);
 	if (tag != NULL && tag->is_free == 0)
-	{
-		debug_scribble_free(tag);
-		tag->origin_size = 0;
-		tag->is_free = 1;
-		tag = merge_with_prev(tag);
-		tag = merge_with_next(tag);
-		if (can_unmap_box(box, tag) == 1)
-			unmap_box(box);
-	}
+		freed_size = free_tag(tag, box);
 	(void)control_mutex(type, MUTEX_UNLOCK);
+	if (freed_size != 0)
+		record_history(HISTORY_FREE, ptr, NULL, freed_size);
 }
 
-t_tag	*merge_with_prev(t_tag *tag)
+size_t	free_tag(t_tag *tag, t_box *box)
 {
-	t_tag	*prev_tag;
+	size_t	freed_size;
 
-	prev_tag = tag->prev_tag;
-	if (prev_tag == NULL || prev_tag->is_free == 0)
-		return (tag);
-	prev_tag->capacity += align_size(sizeof(t_tag)) + tag->capacity;
-	prev_tag->next_tag = tag->next_tag;
-	if (tag->next_tag != NULL)
-		tag->next_tag->prev_tag = prev_tag;
-	return (prev_tag);
+	freed_size = tag->origin_size;
+	debug_scribble_free(tag);
+	tag->origin_size = 0;
+	tag->is_free = 1;
+	if (tag->prev_tag != NULL && tag->prev_tag->is_free == 1)
+		tag = merge_with_next(tag->prev_tag);
+	tag = merge_with_next(tag);
+	if (can_unmap_box(box, tag) == 1)
+		unmap_box(box);
+	return (freed_size);
 }
 
-t_tag	*merge_with_next(t_tag *tag)
+t_tag	*merge_with_next(t_tag *cur_tag)
 {
 	t_tag	*next_tag;
 
-	next_tag = tag->next_tag;
+	next_tag = cur_tag->next_tag;
 	if (next_tag == NULL || next_tag->is_free == 0)
-		return (tag);
-	tag->capacity += align_size(sizeof(t_tag)) + next_tag->capacity;
-	tag->next_tag = next_tag->next_tag;
+		return (cur_tag);
+	cur_tag->capacity += align_size(sizeof(t_tag)) + next_tag->capacity;
+	cur_tag->next_tag = next_tag->next_tag;
 	if (next_tag->next_tag != NULL)
-		next_tag->next_tag->prev_tag = tag;
-	return (tag);
+		next_tag->next_tag->prev_tag = cur_tag;
+	return (cur_tag);
 }
 
 int	can_unmap_box(t_box *box, t_tag *tag)

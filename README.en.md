@@ -27,6 +27,7 @@
 - `src/utils.c`: Overflow-safe addition and multiplication helpers
 - `src/support_thread.c`: Per-zone pthread mutex initialization and lock/unlock control
 - `src/support_debug.c`: Malloc debug variables, `free` diagnostics, and Scribble handling
+- `src/support_history.c`: Allocation-history recording, ring traversal, and output
 - `libft/`: Assignment libft extended with `ft_printf`, get_next_line, and related utilities
 - `Makefile`: Build and cleanup rules for libft and the allocator shared library
 - `.clangd`: Include path configuration for `includes/` and `libft/`
@@ -60,7 +61,7 @@ The current design is centered around `box` and `tag` metadata.
 - `capacity`: Aligned user-area capacity managed by a tag.
 - `origin_size`: Original user-requested size used for output and statistics.
 - `t_malloc_state`: Global state that tracks TINY, SMALL, and LARGE box lists.
-- `t_thread_state`: Holds a pthread mutex for each TINY, SMALL, and LARGE zone.
+- `t_thread_state`: Holds pthread mutexes for TINY, SMALL, LARGE, and allocation history.
 - `TAG_MAGIC`: Magic value used to validate tag metadata.
 - `ALIGNMENT`: 16-byte alignment used for user-area and metadata placement.
 - `TINY_MAX`: Requests up to 128 bytes are classified as TINY.
@@ -120,6 +121,9 @@ The current design is centered around `box` and `tag` metadata.
   allocation start as invalid frees and reports detectable repeated frees
 - `FT_MALLOC_SCRIBBLE=1` fills new user areas with `0xAA`, released user areas
   with `0x55`, and applies the same policy to in-place realloc resizing
+- `FT_MALLOC_HISTORY=1` records `malloc`, `free`, and `realloc` events in a
+  fixed 256-entry ring buffer and prints retained entries in oldest-first order
+  at the end of `show_alloc_mem_ex`
 
 ## Status
 
@@ -130,7 +134,8 @@ address-ordered `show_alloc_mem` output. Bonus work includes zone-level thread
 safety, free-tag defragmentation, and `show_alloc_mem_ex` hexadecimal dumps.
 Basic invalid-free and double-free diagnostics controlled by
 `FT_MALLOC_DEBUG=1` and Scribble patterns controlled by
-`FT_MALLOC_SCRIBBLE=1` are also implemented.
+`FT_MALLOC_SCRIBBLE=1` are also implemented. Allocation-history recording and
+output are protected by a dedicated mutex.
 
 The empty/one/five/mixed/tail `find_next_box` cases and deterministic ascending-address output from `print_boxes`/`show_alloc_mem` each passed five repeated runs. The malloc/free/realloc regression checks for zone classification, splitting, reuse, coalescing, LARGE `munmap`, and realloc also passed five repeated runs each. The shared library exports the required `malloc`, `free`, `realloc`, and `show_alloc_mem` symbols, and there were zero timeouts.
 
@@ -144,7 +149,7 @@ free tag and splits reusable excess capacity while preserving existing data and
 capacity and coalesces adjacent free tags, while LARGE keeps its dedicated
 single-tag box. Cross-zone growth falls back to a new allocation. Dedicated
 shrink checks covered splitting, coalescing/reuse, LARGE behavior, Scribble, and
-20 repeated runs. Allocation history remains future work.
+20 repeated runs.
 
 ## show_alloc_mem Checks
 
@@ -165,6 +170,38 @@ allocations, removal of freed allocations from output, and data preservation
 after `realloc`. A stress run used six workers performing 2,400 combined
 malloc/realloc/free operations while calling `show_alloc_mem_ex` 80 times. Ten
 repeated runs completed 10/10 without deadlocks, corruption, or stale locks.
+
+## Allocation History
+
+Allocation history is enabled only when `FT_MALLOC_HISTORY` is exactly `1`.
+If the variable is unset or has another value, history recording and history
+output are skipped.
+
+```sh
+FT_MALLOC_HISTORY=1 ./program
+```
+
+Without allocating additional memory, the allocator stores history in a fixed
+256-entry ring buffer inside `g_malloc`. Each entry contains an increasing
+sequence number, the event type, the old pointer, the new pointer, and the
+user-requested size. Once the buffer is full, new events overwrite the oldest
+entries. Retained entries are printed from oldest to newest.
+
+Successful `malloc`, `free`, and `realloc` paths record their corresponding
+events. A moving `realloc` calls `malloc` and `free` internally, so their
+detailed events may appear alongside the final `realloc` event. This is the
+current policy for preserving internal allocator activity.
+
+The ring buffer uses a dedicated history mutex, separate from the zone mutexes.
+After finishing its hexadecimal dump and releasing the zone mutexes,
+`show_alloc_mem_ex` prints the history at the end while holding the history
+mutex.
+
+Dedicated checks covered the environment variable's enabled and disabled
+states, in-place and moving realloc, realloc with size zero, a 600-event wrap
+into the 256-entry ring, and concurrent recording by eight workers. Each case
+passed ten runs; retained output stayed ordered from `#344` through `#599`
+without deadlocks, timeouts, or tag-link corruption.
 
 ## Malloc Debug Environment
 

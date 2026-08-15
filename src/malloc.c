@@ -34,6 +34,7 @@ void	*malloc(size_t size)
 	tag = get_tag(origin_size, size, type, boxsize);
 	if (control_mutex(type, MUTEX_UNLOCK) != 0 || tag == NULL)
 		return (NULL);
+	record_history(HISTORY_MALLOC, NULL, tag_to_user(tag), origin_size);
 	return (tag_to_user(tag));
 }
 

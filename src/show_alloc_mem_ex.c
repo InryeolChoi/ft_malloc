@@ -32,6 +32,7 @@ void	show_alloc_mem_ex(void)
 	print_tag_size(total);
 	write(1, " bytes\n", 7);
 	(void)unlock_all_mutex();
+	print_history();
 }
 
 void	print_boxes_ex(char *str, t_box *box)

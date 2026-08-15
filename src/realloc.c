@@ -46,6 +46,7 @@ void	*remake_minptr(void *ptr, t_zone_type type)
 	if (new_ptr == NULL)
 		return (NULL);
 	free(ptr);
+	record_history(HISTORY_REALLOC, ptr, new_ptr, 0);
 	return (new_ptr);
 }
 
@@ -69,6 +70,7 @@ void	*remake_origin(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 	}
 	tag->origin_size = size;
 	(void)control_mutex(type, MUTEX_UNLOCK);
+	record_history(HISTORY_REALLOC, ptr, ptr, size);
 	return (ptr);
 }
 
@@ -90,6 +92,7 @@ void	*remake_newptr(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 		return (NULL);
 	ft_memcpy(new_ptr, ptr, copy_size);
 	free(ptr);
+	record_history(HISTORY_REALLOC, ptr, new_ptr, size);
 	return (new_ptr);
 }
 

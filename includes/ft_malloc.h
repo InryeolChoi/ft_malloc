@@ -112,6 +112,10 @@ int				unlock_all_mutex(void);
 
 void			record_history(t_history_type type, void *old_ptr,
 					void *new_ptr, size_t size);
+void			print_history_hex(uintptr_t value);
+void			print_history_pointer(void *ptr);
+void			print_history_entry(t_history *history);
+void			print_history(void);
 
 size_t			get_basic_page_size(void);
 size_t			align_size(size_t size);
@@ -149,13 +153,15 @@ void			print_boxes_ex(char *str, t_box *box);
 void			print_all_tags_ex(t_box *box);
 void			print_user_area(unsigned char *user_area, size_t size);
 void			print_hex_byte(unsigned char byte);
+
+int				is_env_enabled(const char *name);
 void			debug_free_error(t_tag *tag);
 void			debug_scribble_alloc(t_tag *tag);
 void			debug_scribble_free(t_tag *tag);
 void			debug_scribble_resize(t_tag *tag, size_t new_size);
 
-t_tag			*merge_with_prev(t_tag *tag);
-t_tag			*merge_with_next(t_tag *tag);
+size_t			free_tag(t_tag *tag, t_box *box);
+t_tag			*merge_with_next(t_tag *cur_tag);
 int				can_unmap_box(t_box *box, t_tag *tag);
 void			unmap_box(t_box *box);
 
