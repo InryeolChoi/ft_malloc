@@ -24,8 +24,9 @@
 - `src/boxes.c`: zone type 판별, box list 접근, 포인터가 속한 box 탐색 헬퍼
 - `src/support_malloc.c`: box 연결, 최초 tag 생성, tag split 및 연결 헬퍼
 - `src/support_tags.c`: tag와 user area 사이의 주소 변환, box 내부 tag 탐색
-- `src/support_size.c`: 정렬, 페이지 크기, box content와 최종 box 크기 계산
-- `src/utils.c`: overflow 방지 덧셈/곱셈 헬퍼
+- `src/support_size.c`: 정렬, overflow 검사, box content와 최종 box 크기 계산
+- `src/utils_macos.c`: macOS의 페이지 크기 조회 구현
+- `src/utils_linux.c`: Linux의 페이지 크기 조회 구현
 - `src/support_thread.c`: zone별 pthread mutex 초기화와 lock/unlock 제어
 - `src/support_debug.c`: malloc debug 환경변수, `free` 진단 및 Scribble 처리
 - `src/support_history.c`: allocation history 기록, 원형 배열 순회와 출력
@@ -40,7 +41,9 @@
 - `libft_malloc_arm64_Darwin.so`: host별 실제 shared library
 - `libft_malloc.so`: 위 파일을 가리키는 심볼릭 링크
 
-macOS에서는 `-dynamiclib`, 그 외 운영체제에서는 `-shared`로 연결합니다. 기본 사용법은 다음과 같습니다.
+Makefile은 macOS에서 `utils_macos.c`와 `-dynamiclib`을, Linux에서
+`utils_linux.c`와 `-shared`를 선택합니다. 지원하지 않는 운영체제에서는
+빌드를 중단합니다. 기본 사용법은 다음과 같습니다.
 
 ```sh
 make          # libft와 allocator 빌드
@@ -79,7 +82,8 @@ make re       # 전체 정리 후 다시 빌드
 - box 내부에서 user pointer에 대응되는 tag 탐색
 - `free(ptr)`에서 유효한 tag를 찾아 요청 크기를 초기화하고 `is_free` 표시
 - 해제된 tag의 이전/다음 tag가 free 상태라면 같은 box 안에서 병합
-- OS별 페이지 크기 조회와 fallback 처리
+- macOS의 `getpagesize`와 Linux의 `sysconf(_SC_PAGESIZE)`를 사용한
+  OS별 페이지 크기 조회
 - overflow를 피하기 위한 덧셈/곱셈 helper
 - 요청 크기와 zone type에 따른 mmap box 크기 계산
 - `create_box`를 통한 mmap 영역 생성 및 첫 free tag 초기화

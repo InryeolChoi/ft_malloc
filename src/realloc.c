@@ -39,14 +39,16 @@ void	*realloc(void *ptr, size_t size)
 
 void	*remake_minptr(void *ptr, t_zone_type type)
 {
-	void	*new_ptr;
+	void		*new_ptr;
+	uintptr_t	old_address;
 
 	(void)control_mutex(type, MUTEX_UNLOCK);
 	new_ptr = malloc(1);
 	if (new_ptr == NULL)
 		return (NULL);
+	old_address = (uintptr_t)ptr;
 	free(ptr);
-	record_history(HISTORY_REALLOC, ptr, new_ptr, 0);
+	record_history(HISTORY_REALLOC, (void *)old_address, new_ptr, 0);
 	return (new_ptr);
 }
 
@@ -76,8 +78,9 @@ void	*remake_origin(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 
 void	*remake_newptr(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 {
-	void	*new_ptr;
-	size_t	copy_size;
+	void		*new_ptr;
+	size_t		copy_size;
+	uintptr_t	old_address;
 
 	if (get_zone_type(size) == type
 		&& tag->next_tag != NULL
@@ -91,8 +94,9 @@ void	*remake_newptr(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 	if (new_ptr == NULL)
 		return (NULL);
 	ft_memcpy(new_ptr, ptr, copy_size);
+	old_address = (uintptr_t)ptr;
 	free(ptr);
-	record_history(HISTORY_REALLOC, ptr, new_ptr, size);
+	record_history(HISTORY_REALLOC, (void *)old_address, new_ptr, size);
 	return (new_ptr);
 }
 

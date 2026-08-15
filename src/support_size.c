@@ -66,12 +66,22 @@ size_t	get_box_content_size(t_zone_type type, size_t user_size)
 	return (will_multi_overflow(count, unit_size));
 }
 
-size_t	get_basic_page_size(void)
+size_t	will_add_overflow(size_t num1, size_t num2)
 {
-	long	page_size;
+	size_t	max;
 
-	page_size = getpagesize();
-	if (page_size <= 0)
-		return (4096);
-	return ((size_t)page_size);
+	max = (size_t) - 1;
+	if (num1 > max - num2)
+		return (0);
+	return (num1 + num2);
+}
+
+size_t	will_multi_overflow(size_t num1, size_t num2)
+{
+	size_t	max;
+
+	max = (size_t) - 1;
+	if (num2 != 0 && num1 > max / num2)
+		return (0);
+	return (num1 * num2);
 }

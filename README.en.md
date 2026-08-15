@@ -23,8 +23,9 @@
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
 - `src/support_malloc.c`: Helpers for box linking, initial tag creation, tag splitting, and tag linking
 - `src/support_tags.c`: Tag/user address conversion and tag lookup inside a box
-- `src/support_size.c`: Alignment, page-size, box-content, and final box-size calculation
-- `src/utils.c`: Overflow-safe addition and multiplication helpers
+- `src/support_size.c`: Alignment, overflow checks, box-content, and final box-size calculation
+- `src/utils_macos.c`: Page-size lookup for macOS
+- `src/utils_linux.c`: Page-size lookup for Linux
 - `src/support_thread.c`: Per-zone pthread mutex initialization and lock/unlock control
 - `src/support_debug.c`: Malloc debug variables, `free` diagnostics, and Scribble handling
 - `src/support_history.c`: Allocation-history recording, ring traversal, and output
@@ -39,7 +40,9 @@ The root Makefile builds `libft/libft.a` first, then links the allocator objects
 - `libft_malloc_arm64_Darwin.so`: Host-specific shared library
 - `libft_malloc.so`: Symbolic link to the host-specific file
 
-The linker uses `-dynamiclib` on macOS and `-shared` on other operating systems. The standard targets are:
+The Makefile selects `utils_macos.c` with `-dynamiclib` on macOS and
+`utils_linux.c` with `-shared` on Linux. Unsupported operating systems stop
+the build. The standard targets are:
 
 ```sh
 make          # Build libft and the allocator
@@ -78,7 +81,8 @@ The current design is centered around `box` and `tag` metadata.
 - Lookup of the tag that corresponds to a user pointer inside a box
 - Basic `free(ptr)` behavior that clears the requested size and marks a valid tag as free
 - Adjacent free-tag coalescing with the previous and next tags inside the same box
-- OS-specific page-size lookup with a fallback
+- OS-specific page-size lookup with `getpagesize` on macOS and
+  `sysconf(_SC_PAGESIZE)` on Linux
 - Overflow-safe addition and multiplication helpers
 - mmap box-size calculation based on request size and zone type
 - mmap-backed box creation with an initial free tag

@@ -28,6 +28,17 @@ OBJ_DIR := obj
 LIBFT_DIR := libft
 LIBFT := $(LIBFT_DIR)/libft.a
 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+OS_SRC := utils_macos.c
+SHARED_FLAGS := -dynamiclib
+else ifeq ($(UNAME_S),Linux)
+OS_SRC := utils_linux.c
+SHARED_FLAGS := -shared
+else
+$(error Unsupported operating system: $(UNAME_S))
+endif
+
 SRCS := boxes.c \
 		free.c \
 		malloc.c \
@@ -40,19 +51,12 @@ SRCS := boxes.c \
 		support_size.c \
 		support_tags.c \
 		support_thread.c \
-		utils.c
+		$(OS_SRC)
 
 OBJS := $(SRCS:%.c=$(OBJ_DIR)/%.o)
 LIBFT_SRCS := $(filter-out %_bonus.c,$(wildcard $(LIBFT_DIR)/*.c)) \
 			$(filter-out %_bonus.h,$(wildcard $(LIBFT_DIR)/*.h)) \
 			$(LIBFT_DIR)/Makefile
-
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-SHARED_FLAGS := -dynamiclib
-else
-SHARED_FLAGS := -shared
-endif
 
 all: $(NAME) $(LINK)
 
