@@ -17,7 +17,8 @@
 - `includes/ft_malloc.h`: 공통 타입, 상수, 전역 상태와 의미별로 그룹화한 함수 프로토타입 정의
 - `src/malloc.c`: free tag 탐색, box 생성, tag 할당/분할 기반 `malloc` 구현
 - `src/free.c`: 포인터가 속한 box/tag를 찾아 해제하고 인접 free tag를 병합하는 `free`
-- `src/realloc.c`: 포인터 검증, 축소, 재할당과 데이터 복사를 처리하는 기본 `realloc` 구현
+- `src/realloc.c`: 포인터 검증, 같은 zone의 제자리 확장과 남은 공간 분할,
+  zone 이동 시 재할당 및 데이터 복사를 처리하는 `realloc`
 - `src/show_alloc_mem.c`: zone별 box를 주소순으로 선택해 할당 범위, 요청 크기, 전체 할당량 출력
 - `src/show_alloc_mem_ex.c`: 사용 중인 user area를 16바이트 단위 hexadecimal dump로 출력
 - `src/boxes.c`: zone type 판별, box list 접근, 포인터가 속한 box 탐색 헬퍼
@@ -99,7 +100,11 @@ make re       # 전체 정리 후 다시 빌드
 - `realloc(NULL, size)`를 `malloc(size)`와 같은 흐름으로 처리
 - 유효하지 않거나 이미 해제된 포인터에 대해 `NULL` 반환
 - 기존 capacity 안의 축소 요청은 같은 포인터를 유지하며 요청 크기 갱신
-- capacity를 넘는 확장 요청은 새 영역을 할당하고 기존 데이터를 복사한 뒤 이전 영역 해제
+- capacity를 넘더라도 같은 TINY/SMALL zone의 바로 다음 tag가 free이고 합친
+  공간이 충분하면 해당 tag를 흡수해 포인터와 기존 데이터를 유지하며 제자리 확장
+- 병합 후 `t_tag`와 최소 user area를 만들 공간이 남으면 이를 다시 free tag로 분할
+- 다른 zone으로 커지거나 인접 공간이 부족하면 새 영역을 할당하고 기존 데이터를
+  복사한 뒤 이전 영역 해제
 - 확장용 새 할당이 실패하면 `NULL`을 반환하고 기존 영역 보존
 - `realloc(ptr, 0)`은 현재 1 byte 영역을 새로 할당한 뒤 기존 영역 해제
 - `control_mutex(type, action)`로 zone mutex의 `MUTEX_LOCK` 또는
@@ -139,7 +144,7 @@ safety, free tag 병합, `show_alloc_mem_ex` hexadecimal dump까지 구현했으
 
 `includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
 
-`includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. bonus thread-safety 구현은 zone별 mutex를 사용하며, `malloc`, `free`, `realloc`은 필요한 zone만 잠급니다. `realloc`은 `find_box_and_lock`이 넘긴 잠금 소유권을 각 반환 경로에서 정리하고, 중첩된 `malloc`/`free` 호출 전에는 잠금을 해제합니다. `show_alloc_mem`은 세 zone을 모두 잠근 동안 출력합니다. `realloc` 기본 동작은 60/60 케이스를 통과했고, 6회의 멀티스레드 스트레스 검사에서 allocator 작업 54,000회, `show_alloc_mem` 호출 720회, 무결성 검사 179,910회를 오류 없이 완료했습니다. 제자리 확장 및 축소 후 남은 capacity split은 향후 범위입니다.
+`includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가 추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용하도록 개선했습니다. bonus thread-safety 구현은 zone별 mutex를 사용하며, `malloc`, `free`, `realloc`은 필요한 zone만 잠급니다. `realloc`은 `find_box_and_lock`이 넘긴 잠금 소유권을 각 반환 경로에서 정리하고, 중첩된 `malloc`/`free` 호출 전에는 잠금을 해제합니다. 같은 TINY/SMALL zone에서는 인접 free tag를 흡수해 제자리 확장하고, 병합 후 충분한 공간이 남으면 free tag로 다시 분할합니다. 다른 zone으로 커지는 요청은 새 allocation으로 이동하며 기존 데이터와 `FT_MALLOC_SCRIBBLE` 동작을 보존합니다. `show_alloc_mem`은 세 zone을 모두 잠근 동안 출력합니다. `realloc` 기본 동작은 60/60 케이스를 통과했고, 6회의 멀티스레드 스트레스 검사에서 allocator 작업 54,000회, `show_alloc_mem` 호출 720회, 무결성 검사 179,910회를 오류 없이 완료했습니다. 축소 후 남은 capacity split은 향후 범위입니다.
 
 ## Thread Safety Status
 
@@ -174,7 +179,10 @@ Norminette 3.3.59 reported zero Errors and four `GLOBAL_VAR_DETECTED` Notices.
 Bonus work currently includes zone-level thread safety, free-tag coalescing,
 the `show_alloc_mem_ex` hexadecimal dump, and basic invalid/double-free reports
 controlled by `FT_MALLOC_DEBUG=1`. `FT_MALLOC_SCRIBBLE=1` fills newly exposed
-bytes with `0xAA` and released bytes with `0x55`.
+bytes with `0xAA` and released bytes with `0x55`. Within the same TINY/SMALL
+zone, `realloc` can absorb an adjacent free tag, split reusable excess capacity,
+and preserve both the pointer and existing data. Cross-zone growth uses a new
+allocation.
 
 ## show_alloc_mem 검증
 

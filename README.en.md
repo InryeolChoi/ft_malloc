@@ -16,7 +16,8 @@
 - `includes/ft_malloc.h`: Shared types, constants, global state, and semantically grouped function prototypes
 - `src/malloc.c`: Free-tag lookup, box creation, and tag allocation/splitting for `malloc`
 - `src/free.c`: `free` flow that finds the owning box/tag, releases it, and merges adjacent free tags
-- `src/realloc.c`: Basic `realloc` implementation with pointer validation, shrinking, reallocation, and data copying
+- `src/realloc.c`: Pointer validation, same-zone in-place growth and remainder
+  splitting, plus reallocation and data copying when moving between zones
 - `src/show_alloc_mem.c`: Per-zone boxes selected by address, allocation ranges, requested sizes, and total allocation output
 - `src/show_alloc_mem_ex.c`: Hexadecimal dumps of live user areas in 16-byte rows
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
@@ -95,7 +96,12 @@ The current design is centered around `box` and `tag` metadata.
 - `realloc(NULL, size)` follows the same path as `malloc(size)`
 - Invalid or already freed pointers return `NULL`
 - Shrinks within the existing capacity retain the same pointer and update the requested size
-- Growth beyond capacity allocates a new area, copies existing data, then frees the old area
+- Growth beyond capacity can retain the pointer and existing data by absorbing
+  an adjacent free tag when the request remains in the same TINY/SMALL zone
+- After an in-place merge, enough unused capacity for a `t_tag` and minimum user
+  area is split back into a free tag
+- Cross-zone growth or insufficient adjacent space allocates a new area, copies
+  the existing data, then frees the old area
 - A failed growth allocation returns `NULL` and preserves the old allocation
 - `realloc(ptr, 0)` currently allocates a new 1-byte area before freeing the old area
 - `control_mutex(type, action)` selects `MUTEX_LOCK` or `MUTEX_UNLOCK` for a zone mutex and rejects invalid types or actions
@@ -129,8 +135,11 @@ The includes and prototypes in `includes/ft_malloc.h` are organized as public AP
 
 Standard 42 headers are present in allocator files, and `libft/Makefile` uses
 `.d` dependency files. Official Norminette 3.3.59 reports zero Errors and four
-global-variable Notices. Allocation history, in-place `realloc` growth, and
-splitting unused capacity after a shrink remain future work.
+global-variable Notices. Same-zone in-place `realloc` growth absorbs an adjacent
+free tag and splits reusable excess capacity while preserving existing data and
+`FT_MALLOC_SCRIBBLE` behavior. Cross-zone growth falls back to a new allocation.
+Allocation history and splitting unused capacity after a shrink remain future
+work.
 
 ## show_alloc_mem Checks
 

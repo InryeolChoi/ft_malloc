@@ -54,7 +54,9 @@ void	debug_scribble_resize(t_tag *tag, size_t new_size)
 		return ;
 	user_area = (unsigned char *)tag_to_user(tag);
 	if (new_size > tag->origin_size)
-		ft_memset(user_area + tag->origin_size, 0xAA, new_size - tag->origin_size);
+		ft_memset(user_area + tag->origin_size, 0xAA,
+			new_size - tag->origin_size);
 	else if (new_size < tag->origin_size)
-		ft_memset(user_area + new_size, 0x55, tag->origin_size - new_size);
+		ft_memset(user_area + new_size, 0x55,
+			tag->origin_size - new_size);
 }

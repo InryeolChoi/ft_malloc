@@ -138,5 +138,7 @@ void			*remake_origin(void *ptr, size_t size, t_tag *tag,
 					t_zone_type type);
 void			*remake_newptr(void *ptr, size_t size, t_tag *tag,
 					t_zone_type type);
+void			*remake_addptr(void *ptr, size_t size, t_tag *tag,
+					t_zone_type type);
 
 #endif

@@ -62,6 +62,12 @@ void	*remake_newptr(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 	void	*new_ptr;
 	size_t	copy_size;
 
+	if (get_zone_type(size) == type
+		&& tag->next_tag != NULL
+		&& tag->next_tag->is_free == 1
+		&& size <= tag->capacity + align_size(sizeof(t_tag))
+		+ tag->next_tag->capacity)
+		return (remake_addptr(ptr, size, tag, type));
 	copy_size = tag->origin_size;
 	(void)control_mutex(type, MUTEX_UNLOCK);
 	new_ptr = malloc(size);
@@ -70,4 +76,23 @@ void	*remake_newptr(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 	ft_memcpy(new_ptr, ptr, copy_size);
 	free(ptr);
 	return (new_ptr);
+}
+
+void	*remake_addptr(void *ptr, size_t size, t_tag *tag, t_zone_type type)
+{
+	size_t	needed_size;
+	t_tag	*newtag;
+
+	needed_size = align_size(size);
+	merge_with_next(tag);
+	if (can_split_tag(tag, needed_size))
+	{
+		newtag = make_newtag(tag, needed_size);
+		if (newtag != NULL)
+		{
+			set_newtag(tag, newtag);
+			tag->capacity = needed_size;
+		}
+	}
+	return (remake_origin(ptr, size, tag, type));
 }
