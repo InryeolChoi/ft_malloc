@@ -26,6 +26,7 @@
 # define SMALL_MAX 1024
 # define ALIGNMENT 16
 # define TAG_MAGIC 0xC0FFEEUL
+# define HISTORY_CAPACITY 256
 
 typedef enum e_zone_type
 {
@@ -39,6 +40,23 @@ typedef enum e_mutex_action
 	MUTEX_LOCK,
 	MUTEX_UNLOCK
 }	t_mutex_action;
+
+typedef enum e_history_type
+{
+	HISTORY_NONE,
+	HISTORY_MALLOC,
+	HISTORY_FREE,
+	HISTORY_REALLOC
+}	t_history_type;
+
+typedef struct s_history
+{
+	size_t			sequence;
+	t_history_type	type;
+	void			*old_ptr;
+	void			*new_ptr;
+	size_t			size;
+}	t_history;
 
 typedef struct s_box
 {
@@ -61,9 +79,13 @@ typedef struct s_tag
 
 typedef struct s_malloc_state
 {
-	t_box	*tiny_boxes;
-	t_box	*small_boxes;
-	t_box	*large_boxes;
+	t_box		*tiny_boxes;
+	t_box		*small_boxes;
+	t_box		*large_boxes;
+	t_history	history[HISTORY_CAPACITY];
+	size_t		history_next;
+	size_t		history_count;
+	size_t		history_sequence;
 }	t_malloc_state;
 
 typedef struct s_thread_state
@@ -71,6 +93,7 @@ typedef struct s_thread_state
 	pthread_mutex_t	mutex_tiny;
 	pthread_mutex_t	mutex_small;
 	pthread_mutex_t	mutex_large;
+	pthread_mutex_t	mutex_history;
 }	t_thread_state;
 
 extern t_malloc_state	g_malloc;
@@ -83,8 +106,12 @@ void			show_alloc_mem(void);
 void			show_alloc_mem_ex(void);
 
 int				control_mutex(t_zone_type type, t_mutex_action action);
+int				control_history_mutex(t_mutex_action action);
 int				lock_all_mutex(void);
 int				unlock_all_mutex(void);
+
+void			record_history(t_history_type type, void *old_ptr,
+					void *new_ptr, size_t size);
 
 size_t			get_basic_page_size(void);
 size_t			align_size(size_t size);
@@ -122,7 +149,6 @@ void			print_boxes_ex(char *str, t_box *box);
 void			print_all_tags_ex(t_box *box);
 void			print_user_area(unsigned char *user_area, size_t size);
 void			print_hex_byte(unsigned char byte);
-
 void			debug_free_error(t_tag *tag);
 void			debug_scribble_alloc(t_tag *tag);
 void			debug_scribble_free(t_tag *tag);

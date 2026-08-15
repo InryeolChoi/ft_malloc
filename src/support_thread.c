@@ -15,6 +15,7 @@
 t_thread_state	g_thread = {
 	PTHREAD_MUTEX_INITIALIZER,
 	PTHREAD_MUTEX_INITIALIZER,
+	PTHREAD_MUTEX_INITIALIZER,
 	PTHREAD_MUTEX_INITIALIZER
 };
 
@@ -67,4 +68,16 @@ int	unlock_all_mutex(void)
 	if (pthread_mutex_unlock(&g_thread.mutex_tiny) != 0)
 		failed = 1;
 	return (failed);
+}
+
+int	control_history_mutex(t_mutex_action action)
+{
+	pthread_mutex_t	*mutex;
+
+	mutex = &g_thread.mutex_history;
+	if (action == MUTEX_LOCK)
+		return (pthread_mutex_lock(mutex));
+	if (action == MUTEX_UNLOCK)
+		return (pthread_mutex_unlock(mutex));
+	return (1);
 }
