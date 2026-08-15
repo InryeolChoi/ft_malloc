@@ -16,8 +16,8 @@
 - `includes/ft_malloc.h`: Shared types, constants, global state, and semantically grouped function prototypes
 - `src/malloc.c`: Free-tag lookup, box creation, and tag allocation/splitting for `malloc`
 - `src/free.c`: `free` flow that finds the owning box/tag, releases it, and merges adjacent free tags
-- `src/realloc.c`: Pointer validation, same-zone in-place growth and remainder
-  splitting, plus reallocation and data copying when moving between zones
+- `src/realloc.c`: Pointer validation, in-place growth/shrink splitting, plus
+  reallocation and data copying when moving between zones
 - `src/show_alloc_mem.c`: Per-zone boxes selected by address, allocation ranges, requested sizes, and total allocation output
 - `src/show_alloc_mem_ex.c`: Hexadecimal dumps of live user areas in 16-byte rows
 - `src/boxes.c`: Helpers for zone classification, box-list access, and pointer-to-box lookup
@@ -95,7 +95,10 @@ The current design is centered around `box` and `tag` metadata.
 - Allocation-free output through the extended libft `ft_printf`
 - `realloc(NULL, size)` follows the same path as `malloc(size)`
 - Invalid or already freed pointers return `NULL`
-- Shrinks within the existing capacity retain the same pointer and update the requested size
+- Shrinks within the existing capacity retain the same pointer; TINY/SMALL
+  allocations split sufficient aligned remainder into a free tag and coalesce it
+  with the following free tag
+- LARGE shrink keeps the dedicated box as a single-tag allocation
 - Growth beyond capacity can retain the pointer and existing data by absorbing
   an adjacent free tag when the request remains in the same TINY/SMALL zone
 - After an in-place merge, enough unused capacity for a `t_tag` and minimum user
@@ -137,9 +140,11 @@ Standard 42 headers are present in allocator files, and `libft/Makefile` uses
 `.d` dependency files. Official Norminette 3.3.59 reports zero Errors and four
 global-variable Notices. Same-zone in-place `realloc` growth absorbs an adjacent
 free tag and splits reusable excess capacity while preserving existing data and
-`FT_MALLOC_SCRIBBLE` behavior. Cross-zone growth falls back to a new allocation.
-Allocation history and splitting unused capacity after a shrink remain future
-work.
+`FT_MALLOC_SCRIBBLE` behavior. TINY/SMALL shrink splits reusable aligned
+capacity and coalesces adjacent free tags, while LARGE keeps its dedicated
+single-tag box. Cross-zone growth falls back to a new allocation. Dedicated
+shrink checks covered splitting, coalescing/reuse, LARGE behavior, Scribble, and
+20 repeated runs. Allocation history remains future work.
 
 ## show_alloc_mem Checks
 

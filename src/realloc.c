@@ -51,7 +51,22 @@ void	*remake_minptr(void *ptr, t_zone_type type)
 
 void	*remake_origin(void *ptr, size_t size, t_tag *tag, t_zone_type type)
 {
+	size_t	needed_size;
+	t_tag	*newtag;
+
 	debug_scribble_resize(tag, size);
+	needed_size = align_size(size);
+	if (type != ZONE_LARGE && size < tag->origin_size
+		&& can_split_tag(tag, needed_size))
+	{
+		newtag = make_newtag(tag, needed_size);
+		if (newtag != NULL)
+		{
+			set_newtag(tag, newtag);
+			tag->capacity = needed_size;
+			merge_with_next(newtag);
+		}
+	}
 	tag->origin_size = size;
 	(void)control_mutex(type, MUTEX_UNLOCK);
 	return (ptr);
