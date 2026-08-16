@@ -55,6 +55,28 @@ A host name can also be supplied explicitly, as in `make HOSTTYPE=custom`. Passi
 
 `libft/Makefile` now generates and includes `.d` dependency files with `-MMD -MP`. This allows related objects to rebuild when libft headers change, and `clean` removes both `.o` and `.d` files.
 
+## Platform Compatibility Checks
+
+Each Linux build was compiled from scratch with `make re` inside its Docker
+distribution. The resulting shared library was injected with `LD_PRELOAD` and
+tested with `malloc`, `malloc(0)`, `realloc`, `free`, and four concurrent
+workers performing 2,000 allocation cycles each.
+
+| Environment | Architecture / compiler | Result |
+| --- | --- | --- |
+| Alpine Linux | ARM64 / GCC 15.2, musl | Passed |
+| Ubuntu 24.04.4 LTS | ARM64 / GCC 13.3 | Passed |
+| Debian 12 Bookworm | ARM64 / GCC 12.2 | Passed |
+| Kali Linux Rolling | ARM64 / GCC 15.3 | Passed |
+| Red Hat Enterprise Linux 9.8 UBI | ARM64 / GCC 11.5 | Passed |
+| Linux Mint 22.3 community image | AMD64 / GCC 13.3 | Passed with the limitation below |
+
+Despite its name, the Mint community image identifies itself as Ubuntu 24.04
+inside the container and does not provide `/etc/linuxmint/info`. Its result is
+therefore only a compatibility reference for the Ubuntu base used by Mint, not
+an independent check on an installed Mint system. Arch Linux has not yet been
+run directly.
+
 ## Memory Model
 
 The current design is centered around `box` and `tag` metadata.

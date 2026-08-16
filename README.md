@@ -56,6 +56,27 @@ make re       # 전체 정리 후 다시 빌드
 
 `libft/Makefile`은 `-MMD -MP`로 `.d` 의존성 파일을 생성하고 포함합니다. 따라서 libft 헤더가 바뀌면 관련 object를 다시 빌드할 수 있으며, `clean`은 `.o`와 `.d` 파일을 함께 정리합니다.
 
+## 플랫폼 호환성 검증
+
+Linux 전용 빌드는 Docker의 각 배포판에서 `make re`로 완전히 다시
+컴파일했습니다. 생성된 shared library를 `LD_PRELOAD`로 주입한 뒤
+`malloc`, `malloc(0)`, `realloc`, `free`와 4개 thread의 worker당 2,000회
+반복 할당을 검사했습니다.
+
+| 환경 | 아키텍처 / 컴파일러 | 결과 |
+| --- | --- | --- |
+| Alpine Linux | ARM64 / GCC 15.2, musl | 통과 |
+| Ubuntu 24.04.4 LTS | ARM64 / GCC 13.3 | 통과 |
+| Debian 12 Bookworm | ARM64 / GCC 12.2 | 통과 |
+| Kali Linux Rolling | ARM64 / GCC 15.3 | 통과 |
+| Red Hat Enterprise Linux 9.8 UBI | ARM64 / GCC 11.5 | 통과 |
+| Linux Mint 22.3 community image | AMD64 / GCC 13.3 | 아래 제한과 함께 통과 |
+
+Mint community image는 이름과 달리 컨테이너 내부에서 Ubuntu 24.04로
+식별되고 `/etc/linuxmint/info`가 없었습니다. 따라서 해당 결과는
+Ubuntu 기반 Mint 호환성 참고용이며, 실제 Mint 설치 환경의 독립 검증으로
+간주하지 않습니다. Arch Linux는 아직 직접 실행하지 않았습니다.
+
 ## 메모리 모델
 
 현재 구조는 `box`와 `tag`를 중심으로 잡혀 있습니다.
