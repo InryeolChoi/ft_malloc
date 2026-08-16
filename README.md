@@ -1,67 +1,75 @@
 # ft_malloc
-[English version](README.en.md)
 
-`ft_malloc`는 C로 `malloc`, `free`, `realloc`, `show_alloc_mem`,
-`show_alloc_mem_ex`를 직접 구현하는 메모리 할당자 프로젝트입니다.
+[영문 README](README.en.md)
+
+`ft_malloc`은 C로 `malloc`, `free`, `realloc`, `show_alloc_mem`,
+`show_alloc_mem_ex`를 직접 구현하는 42 과제 프로젝트입니다.
 
 ## 목표
 
-- `mmap`/`munmap` 기반으로 동적 메모리 할당 흐름을 구현합니다.
-- TINY, SMALL, LARGE 크기 구간별 메모리 영역을 관리합니다.
-- 사용자 영역 앞에 붙는 메타데이터 태그를 통해 할당 상태를 추적합니다.
-- `libft`를 함께 포함해 프로젝트 내부 유틸리티로 사용할 수 있게 구성합니다.
-- 포인터 검증, 영역 탐색, 태그 탐색을 분리해 `free`와 `realloc`에 사용합니다.
+- `mmap`과 `munmap`을 이용한 동적 메모리 할당 흐름 구현
+- TINY, SMALL, LARGE 크기 구간별 메모리 영역 관리
+- 사용자 영역 앞의 메타데이터를 이용한 할당 상태 추적
+- `free`와 `realloc`을 위한 포인터, box, tag 탐색 분리
+- 프로젝트 내부 동작에 필요한 유틸리티를 `libft`로 관리
 
-## 현재 구성
+## 프로젝트 구성
 
-- `includes/ft_malloc.h`: 공통 타입, 상수, 전역 상태와 의미별로 그룹화한 함수 프로토타입 정의
-- `src/malloc.c`: free tag 탐색, box 생성, tag 할당/분할 기반 `malloc` 구현
-- `src/free.c`: 포인터가 속한 box/tag를 찾아 해제하고 인접 free tag를 병합하는 `free`
-- `src/realloc.c`: 포인터 검증, 제자리 확장/축소와 남은 공간 분할,
-  zone 이동 시 재할당 및 데이터 복사를 처리하는 `realloc`
-- `src/show_alloc_mem.c`: zone별 box를 주소순으로 선택해 할당 범위, 요청 크기, 전체 할당량 출력
-- `src/show_alloc_mem_ex.c`: 사용 중인 user area를 16바이트 단위 hexadecimal dump로 출력
-- `src/boxes.c`: zone type 판별, box list 접근, 포인터가 속한 box 탐색 헬퍼
-- `src/support_malloc.c`: box 연결, 최초 tag 생성, tag split 및 연결 헬퍼
-- `src/support_tags.c`: tag와 user area 사이의 주소 변환, box 내부 tag 탐색
-- `src/support_size.c`: 정렬, overflow 검사, box content와 최종 box 크기 계산
-- `src/utils_macos.c`: macOS의 페이지 크기 조회 구현
-- `src/utils_linux.c`: Linux의 페이지 크기 조회 구현
-- `src/support_thread.c`: zone별 pthread mutex 초기화와 lock/unlock 제어
-- `src/support_debug.c`: malloc debug 환경변수, `free` 진단 및 Scribble 처리
-- `src/support_history.c`: allocation history 기록, 원형 배열 순회와 출력
-- `libft/`: `ft_printf`, get_next_line 등을 포함한 과제용 libft
-- `Makefile`: libft와 allocator shared library 빌드 및 정리 규칙
-- `.clangd`: `includes/`, `libft/` include path 설정
+- `includes/ft_malloc.h`: 공통 타입, 상수, 전역 상태, 함수 원형
+- `src/malloc.c`: 해제 tag 탐색, box 생성, tag 할당과 분할
+- `src/free.c`: 포인터 검증, tag 해제, 인접 해제 tag 병합
+- `src/realloc.c`: 제자리 확장과 축소, 공간 분할, 데이터 복사
+- `src/show_alloc_mem.c`: 주소순 box 탐색과 기본 할당 상태 출력
+- `src/show_alloc_mem_ex.c`: 사용 중인 사용자 영역의 16진수 덤프 출력
+- `src/boxes.c`: zone 분류, box 목록 접근, box 탐색
+- `src/support_malloc.c`: box 연결, 최초 tag 생성, tag 분할
+- `src/support_tags.c`: tag와 사용자 영역 사이의 주소 변환과 tag 탐색
+- `src/support_size.c`: 정렬, 오버플로 검사, box 크기 계산
+- `src/utils_macos.c`: macOS의 페이지 크기 조회
+- `src/utils_linux.c`: Linux의 페이지 크기 조회
+- `src/support_thread.c`: zone별 pthread mutex 제어
+- `src/support_debug.c`: 디버그 환경변수와 Scribble 처리
+- `src/support_history.c`: 할당 기록 저장과 출력
+- `libft/`: 과제에서 사용하는 libft
+- `Makefile`: libft와 allocator 공유 라이브러리의 빌드 규칙
+- `.clangd`: clangd의 include 경로 설정
 
-## Build
+## 빌드
 
-루트 Makefile은 먼저 `libft/libft.a`를 빌드한 뒤 allocator object를 shared library로 연결합니다. pthread 기반 thread safety 작업을 위해 allocator의 컴파일과 링크에는 `-pthread`를 사용합니다. `HOSTTYPE`이 설정되지 않았거나 환경 변수 또는 명령행에서 빈 값으로 전달되면 `uname -m`과 `uname -s`를 조합한 값으로 대체합니다. 예를 들어 Apple Silicon macOS에서는 다음 산출물이 생성됩니다.
+루트 `Makefile`은 먼저 `libft/libft.a`를 빌드한 뒤 allocator를 공유
+라이브러리로 연결합니다. 컴파일과 링크에는 pthread 사용을 위한
+`-pthread`가 적용됩니다.
 
-- `libft_malloc_arm64_Darwin.so`: host별 실제 shared library
-- `libft_malloc.so`: 위 파일을 가리키는 심볼릭 링크
+`HOSTTYPE`이 비어 있거나 정의되지 않았으면 `uname -m`과 `uname -s`를
+조합해 자동으로 지정합니다. Apple Silicon macOS에서는 다음과 같은
+파일이 생성됩니다.
 
-Makefile은 macOS에서 `utils_macos.c`와 `-dynamiclib`을, Linux에서
+- `libft_malloc_arm64_Darwin.so`: 실제 공유 라이브러리
+- `libft_malloc.so`: 실제 라이브러리를 가리키는 심볼릭 링크
+
+Makefile은 macOS에서 `utils_macos.c`와 `-dynamiclib`을 선택하고, Linux에서는
 `utils_linux.c`와 `-shared`를 선택합니다. 지원하지 않는 운영체제에서는
-빌드를 중단합니다. 기본 사용법은 다음과 같습니다.
+빌드를 중단합니다.
 
 ```sh
 make          # libft와 allocator 빌드
-make clean    # allocator/libft object 정리
-make fclean   # object, libft.a, shared library와 symlink 정리
+make clean    # allocator와 libft의 오브젝트 정리
+make fclean   # 오브젝트, libft.a, 공유 라이브러리와 링크 제거
 make re       # 전체 정리 후 다시 빌드
 ```
 
-`make HOSTTYPE=custom`처럼 host 이름을 직접 지정할 수도 있습니다. 빈 값을 명시한 `make HOSTTYPE=`은 자동 감지 fallback을 사용합니다. 변경 사항이 없는 상태에서 `make`를 다시 실행하면 산출물을 재빌드하지 않습니다.
+`make HOSTTYPE=custom`처럼 호스트 이름을 직접 지정할 수도 있습니다.
+`make HOSTTYPE=`처럼 빈 값을 전달하면 자동 감지를 사용합니다.
 
-`libft/Makefile`은 `-MMD -MP`로 `.d` 의존성 파일을 생성하고 포함합니다. 따라서 libft 헤더가 바뀌면 관련 object를 다시 빌드할 수 있으며, `clean`은 `.o`와 `.d` 파일을 함께 정리합니다.
+`libft/Makefile`은 `-MMD -MP`로 `.d` 의존성 파일을 만들고 포함합니다.
+따라서 libft 헤더가 변경되면 관련 object를 다시 빌드할 수 있습니다.
 
 ## 플랫폼 호환성 검증
 
-Linux 전용 빌드는 Docker의 각 배포판에서 `make re`로 완전히 다시
-컴파일했습니다. 생성된 shared library를 `LD_PRELOAD`로 주입한 뒤
-`malloc`, `malloc(0)`, `realloc`, `free`와 4개 thread의 worker당 2,000회
-반복 할당을 검사했습니다.
+Linux 전용 빌드는 Docker의 각 환경에서 `make re`로 완전히 다시
+컴파일했습니다. 생성된 공유 라이브러리를 `LD_PRELOAD`로 주입한 뒤
+`malloc`, `malloc(0)`, `realloc`, `free`와 4개 스레드의 반복 할당을
+검사했습니다. 각 작업 스레드는 2,000회의 할당 작업을 수행했습니다.
 
 | 환경 | 아키텍처 / 컴파일러 | 결과 |
 | --- | --- | --- |
@@ -70,247 +78,158 @@ Linux 전용 빌드는 Docker의 각 배포판에서 `make re`로 완전히 다�
 | Debian 12 Bookworm | ARM64 / GCC 12.2 | 통과 |
 | Kali Linux Rolling | ARM64 / GCC 15.3 | 통과 |
 | Red Hat Enterprise Linux 9.8 UBI | ARM64 / GCC 11.5 | 통과 |
-| Linux Mint 22.3 community image | AMD64 / GCC 13.3 | 아래 제한과 함께 통과 |
+| Linux Mint 22.3 커뮤니티 이미지 | AMD64 / GCC 13.3 | 제한과 함께 통과 |
 
-Mint community image는 이름과 달리 컨테이너 내부에서 Ubuntu 24.04로
-식별되고 `/etc/linuxmint/info`가 없었습니다. 따라서 해당 결과는
-Ubuntu 기반 Mint 호환성 참고용이며, 실제 Mint 설치 환경의 독립 검증으로
-간주하지 않습니다. Arch Linux는 아직 직접 실행하지 않았습니다.
+Mint 커뮤니티 이미지는 컨테이너 내부에서 Ubuntu 24.04로 식별되며
+`/etc/linuxmint/info` 파일이 없었습니다. 따라서 해당 결과는 Mint가
+사용하는 Ubuntu 기반과의 호환성을 확인한 참고 결과이며, 실제 Mint 설치
+환경의 독립적인 검증으로 간주하지 않습니다. Arch Linux는 아직 직접
+실행하지 않았습니다.
 
 ## 메모리 모델
 
-현재 구조는 `box`와 `tag`를 중심으로 잡혀 있습니다.
+현재 allocator는 `box`와 `tag`를 중심으로 구성됩니다.
 
-- `t_box`: mmap으로 확보한 메모리 영역을 나타냅니다.
-- `t_tag`: 사용자에게 반환되는 영역 앞에 위치하는 메타데이터입니다.
-- `capacity`: 정렬 후 실제로 tag가 관리하는 user area 크기입니다.
-- `origin_size`: 사용자가 원래 요청한 크기로, 출력과 통계에 사용합니다.
-- `t_malloc_state`: TINY, SMALL, LARGE box list를 전역으로 관리합니다.
-- `t_thread_state`: TINY, SMALL, LARGE와 allocation history용 pthread mutex를 보유합니다.
-- `TAG_MAGIC`: tag 무결성을 확인하기 위한 magic value입니다.
-- `ALIGNMENT`: user area와 메타데이터 배치에 사용하는 16-byte 정렬 기준입니다.
-- `TINY_MAX`: 128 bytes 이하 요청을 TINY로 분류합니다.
-- `SMALL_MAX`: 1024 bytes 이하 요청을 SMALL로 분류합니다.
+- `t_box`: `mmap`으로 확보한 메모리 영역
+- `t_tag`: 사용자 영역 앞에 놓이는 메타데이터
+- `capacity`: 정렬 후 tag가 관리하는 사용자 영역의 실제 크기
+- `origin_size`: 사용자가 원래 요청한 크기
+- `t_malloc_state`: TINY, SMALL, LARGE box 목록을 관리하는 전역 상태
+- `t_thread_state`: zone과 할당 기록용 mutex를 보관하는 상태
+- `TAG_MAGIC`: tag의 유효성 확인에 사용하는 magic 값
+- `ALIGNMENT`: 사용자 영역과 메타데이터 배치에 사용하는 16바이트 정렬 기준
+- `TINY_MAX`: 128바이트 이하 요청의 분류 기준
+- `SMALL_MAX`: 1024바이트 이하 요청의 분류 기준
 
-## 구현된 부분
+TINY와 SMALL은 하나의 box 안에 여러 할당을 저장합니다. LARGE는
+요청마다 별도의 box를 만들고, 하나의 할당이 해제되면 box 전체를
+`munmap`합니다.
 
-- `g_malloc` 전역 상태 초기화
-- 요청 크기에 따른 `ZONE_TINY`, `ZONE_SMALL`, `ZONE_LARGE` 분류
-- zone type에 맞는 box list 접근
-- 포인터가 어떤 box 범위 안에 있는지 확인
-- 전체 box pool에서 포인터가 속한 box 탐색
-- tag와 user area 사이의 주소 변환
-- box 내부에서 user pointer에 대응되는 tag 탐색
-- `free(ptr)`에서 유효한 tag를 찾아 요청 크기를 초기화하고 `is_free` 표시
-- 해제된 tag의 이전/다음 tag가 free 상태라면 같은 box 안에서 병합
-- macOS의 `getpagesize`와 Linux의 `sysconf(_SC_PAGESIZE)`를 사용한
-  OS별 페이지 크기 조회
-- overflow를 피하기 위한 덧셈/곱셈 helper
-- 요청 크기와 zone type에 따른 mmap box 크기 계산
-- `create_box`를 통한 mmap 영역 생성 및 첫 free tag 초기화
-- box를 전역 box list에 연결하는 흐름
-- 기존 box list에서 재사용 가능한 free tag 탐색
-- LARGE 요청은 기존 free tag 재사용 없이 요청마다 별도 box 생성
-- LARGE box가 완전히 free 상태가 되면 box list에서 제거하고 `munmap`
-- TINY/SMALL box가 완전히 free 상태이고 같은 zone에 다른 box가 남아 있으면 box list에서 제거하고 `munmap`
-- `unmap_box`는 zone lock을 유지한 채 `next_box`와 type을 보존하고
-  `munmap`을 먼저 호출하며, 성공한 경우에만 head 또는 이전 box의 link를 갱신
-- `munmap`이 실패하면 box list를 변경하지 않아 allocator가 해당 box를 계속 추적
-- 정렬된 요청 크기를 기준으로 tag 할당 및 남은 공간 분할
-- tag split은 TINY/SMALL 크기 요청에서만 수행
-- 원래 요청 크기와 정렬된 capacity를 분리해 저장
-- `show_alloc_mem`에서 TINY/SMALL/LARGE별 box를 `uintptr_t` 주소 오름차순으로 선택하고 주소 범위와 전체 요청 크기 출력
-- `find_next_box`가 직전에 출력한 box보다 주소가 큰 box 중 최솟값을 매번 다시 찾아 생성 순서와 무관하게 출력
-- 임시 allocation이나 `t_box` 출력 플래그 없이 box 정렬에 O(n^2) 시간과 O(1) 추가 메모리 사용
-- 확장된 libft의 `ft_printf`를 동적 할당 없이 출력에 사용
+## 구현된 기능
+
+- `ZONE_TINY`, `ZONE_SMALL`, `ZONE_LARGE` 분류
+- zone별 box 목록 접근과 box 탐색
+- 사용자 포인터가 할당자의 box에 속하는지 확인
+- 사용자 포인터와 tag 사이의 주소 변환
+- 해제 tag 재사용과 tag 분할
+- 정렬된 크기와 원래 요청 크기의 분리 저장
+- 덧셈과 곱셈의 오버플로 검사
+- 각 zone의 최소 100개 할당을 수용하는 box 계산
+- LARGE 전용 box 생성과 split 방지
+- 빈 LARGE box의 목록 제거와 `munmap`
+- 조건을 만족하는 빈 TINY/SMALL box의 `munmap`
+- 인접 해제 tag의 병합을 통한 파편화 감소
 - `realloc(NULL, size)`를 `malloc(size)`와 같은 흐름으로 처리
-- 유효하지 않거나 이미 해제된 포인터에 대해 `NULL` 반환
-- 기존 capacity 안의 축소 요청은 같은 포인터를 유지하며, TINY/SMALL에서
-  충분한 공간이 남으면 정렬된 새 크기 뒤를 free tag로 분할하고 다음 free
-  tag와 병합
-- LARGE 축소는 전용 box의 단일 tag 구조를 유지
-- capacity를 넘더라도 같은 TINY/SMALL zone의 바로 다음 tag가 free이고 합친
-  공간이 충분하면 해당 tag를 흡수해 포인터와 기존 데이터를 유지하며 제자리 확장
-- 병합 후 `t_tag`와 최소 user area를 만들 공간이 남으면 이를 다시 free tag로 분할
-- 다른 zone으로 커지거나 인접 공간이 부족하면 새 영역을 할당하고 기존 데이터를
-  복사한 뒤 이전 영역 해제
-- 확장용 새 할당이 실패하면 `NULL`을 반환하고 기존 영역 보존
-- `realloc(ptr, 0)`은 현재 1 byte 영역을 새로 할당한 뒤 기존 영역 해제
-- `control_mutex(type, action)`로 zone mutex의 `MUTEX_LOCK` 또는
-  `MUTEX_UNLOCK` 동작을 선택하고 잘못된 type/action은 거부
-- `malloc`의 box/tag 탐색과 변경 경로를 해당 zone mutex로 보호
-- `free`와 `realloc`은 `find_box_and_lock`으로 box를 찾고 해당 zone
-  mutex의 소유권을 호출 경로가 이어받아 해제
-- `realloc`은 중첩된 `malloc`/`free` 호출 전에 기존 zone mutex를 해제하고,
-  잠금 상태에서 `copy_size`를 저장해 해제 후 tag를 다시 읽지 않음
-- 새 영역 할당에 실패한 `realloc`은 기존 allocation을 그대로 보존
-- 더 이상 사용하지 않는 `find_box_pool`을 제거하고 box 탐색을
-  `find_box_and_lock`으로 통일
-- `show_alloc_mem`은 출력 중 세 zone mutex를 모두 잠가 일관된 상태를 순회
-- `show_alloc_mem_ex`는 사용 중인 tag의 user area를 `origin_size`만큼
-  16바이트 단위 hexadecimal dump로 출력
-- `show_alloc_mem_ex`도 세 zone mutex를 잠가 free 또는 `munmap`과 동시에
-  메모리를 읽지 않도록 보호
-- `FT_MALLOC_DEBUG=1`일 때 allocator 밖의 포인터, allocation 시작점이 아닌
-  포인터를 invalid free로 출력하고 탐지 가능한 재해제를 double free로 출력
-- `FT_MALLOC_SCRIBBLE=1`일 때 새 user area를 `0xAA`, 해제되는 user area를
-  `0x55`로 채우고 제자리 realloc의 확장·축소 영역에도 같은 정책 적용
-- `FT_MALLOC_HISTORY=1`일 때 `malloc`, `free`, `realloc` 이벤트를 256개
-  고정 크기 원형 배열에 기록하고 `show_alloc_mem_ex` 마지막에 오래된
-  기록부터 출력
+- capacity 안의 realloc 축소와 해제 tag 분할
+- 인접 해제 tag를 이용한 같은 zone의 realloc 제자리 확장
+- 공간이 부족하거나 zone이 바뀌는 realloc의 새 할당과 데이터 복사
+- 확장용 새 할당 실패 시 기존 할당 보존
+- `realloc(ptr, 0)`의 최소 크기 할당 처리
+- TINY, SMALL, LARGE box의 주소 오름차순 `show_alloc_mem` 출력
+- 사용 중인 사용자 영역을 16바이트 단위로 출력하는 `show_alloc_mem_ex`
+- `FT_MALLOC_DEBUG=1` 기반 잘못된 해제와 중복 해제 진단
+- `FT_MALLOC_SCRIBBLE=1` 기반 `0xAA`와 `0x55` 패턴 처리
+- `FT_MALLOC_HISTORY=1` 기반 256개 원형 배열 할당 기록
 
-## 진행 상태
+## 스레드 안전성
 
-현재 `malloc`의 box 생성, TINY/SMALL free tag 재사용과 split, LARGE 전용 box 할당, 비어 있는 box의 조건부 `munmap`, 정렬 처리, 기본 `free`, 인접 free tag 병합, 기본 `realloc`, 주소순 `show_alloc_mem` 출력 흐름이 구현된 상태입니다. 전체 소스는 `-Wall -Wextra -Werror -Wmissing-prototypes` 문법 검사를 통과하며 루트 Makefile로 shared library를 빌드할 수 있습니다.
+각 zone을 독립적인 mutex로 보호해 TINY, SMALL, LARGE 작업이 서로
+불필요하게 기다리지 않도록 구성했습니다.
 
-Mandatory 구현과 제출 검증을 완료했습니다. 새 `unmap_box`는 첫 번째, 중간,
-마지막 box 제거와 주입된 `munmap` 실패 시 list 보존을 포함해 176/176
-케이스를 통과했습니다. macOS `DYLD` flat namespace interposition에서
-`malloc`, `free`, `realloc`, `show_alloc_mem` export와 경계값 동작을
-확인했습니다. 공식 Norminette 3.3.59 결과는 Error 0건이며,
-`GLOBAL_VAR_DETECTED` Notice 4건만 남았습니다. Bonus는 zone별 thread
-safety, free tag 병합, `show_alloc_mem_ex` hexadecimal dump까지 구현했으며,
-기본 malloc debug 진단과 Scribble 환경변수도 구현했습니다.
+- `malloc`, `free`, `realloc`은 접근하는 zone만 잠금
+- `find_box_and_lock`이 얻은 mutex의 소유권을 호출 경로가 이어받음
+- 모든 정상 및 오류 경로에서 소유한 mutex를 해제
+- 중첩된 `malloc`이나 `free` 호출 전 기존 mutex를 해제해 재귀 잠금 방지
+- 잠금 상태에서 `copy_size`를 저장해 잠금 해제 후 기존 tag를 재참조하지 않음
+- `show_alloc_mem`과 `show_alloc_mem_ex`는 세 zone을 함께 잠가 일관된 상태를 순회
+- `unmap_box`는 `munmap` 성공을 확인한 뒤 box 목록을 변경
+- 할당 기록은 zone mutex와 분리된 기록 전용 mutex로 보호
 
-`find_next_box`의 empty/one/five/mixed/tail 케이스와 `print_boxes`/`show_alloc_mem`의 결정적 주소 오름차순 출력을 각각 5회 반복해 통과했습니다. malloc/free/realloc의 zone 분류, split, 재사용, 병합, LARGE `munmap`, realloc 회귀 검사도 각각 5회 반복해 통과했습니다. shared library의 `malloc`, `free`, `realloc`, `show_alloc_mem` 필수 심볼 export를 확인했으며 timeout 발생은 0건이었습니다.
+## 검증 현황
 
-`includes/ft_malloc.h`의 include와 원형은 public API, size/overflow, box/list, tag/allocation, display, free/coalescing, realloc helper 순으로 정리되어 있으며 문법 검사와 `-Wmissing-prototypes` 검사를 통과했습니다.
+필수 기능과 제출 검증을 완료했습니다. `unmap_box`는 첫 번째, 중간,
+마지막 box 제거와 `munmap` 실패 시 목록 보존을 포함해 176/176 케이스를
+통과했습니다. macOS의 `DYLD` interposition에서 `malloc`, `free`,
+`realloc`, `show_alloc_mem` 심볼과 경계값 동작을 확인했습니다.
 
-`includes/ft_malloc.h`, `src/*.c`, 루트 `Makefile`에는 표준 42 파일 헤더가
-추가된 상태입니다. `libft/Makefile`은 `.d` 의존성 파일을 사용합니다.
-bonus thread-safety 구현은 zone별 mutex를 사용하며, `malloc`, `free`,
-`realloc`은 필요한 zone만 잠급니다.
+공식 Norminette 3.3.59는 오류 0건과 전역변수 감지 알림 4건을 보고했습니다.
+`-Wall -Wextra -Werror -Wmissing-prototypes` 검사와 공유 라이브러리 빌드도
+통과했습니다.
 
-`realloc`은 같은 TINY/SMALL zone에서 인접 free tag를 흡수해 제자리
-확장하고, 충분한 공간이 남으면 free tag로 다시 분할합니다. 축소할 때도
-정렬된 새 크기 뒤의 공간을 분할하고 기존 free tag와 병합하며, LARGE는
-전용 box의 단일 tag를 유지합니다. 다른 zone으로 커지는 요청은 새
-allocation으로 이동하고 기존 데이터와 `FT_MALLOC_SCRIBBLE` 동작을
-보존합니다.
+realloc 기본 동작은 60/60 케이스를 통과했습니다. 멀티스레드 스트레스
+검사에서는 allocator 작업 54,000회, `show_alloc_mem` 호출 720회,
+무결성 검사 179,910회를 오류 없이 완료했습니다.
 
-`realloc` 기본 동작은 60/60 케이스를 통과했습니다. 6회의 멀티스레드
-스트레스 검사에서는 allocator 작업 54,000회, `show_alloc_mem` 호출
-720회, 무결성 검사 179,910회를 오류 없이 완료했습니다. 축소 split은
-기본 분할, 인접 free tag 병합/재사용, LARGE 단일 tag 유지, Scribble과
-20회 반복 검사를 통과했습니다.
+`find_next_box`의 빈 목록, 1개, 5개, 혼합, 마지막 항목 케이스와 결정적 주소
+오름차순 출력은 각각 5회 반복해 통과했습니다. zone 분류, split, 재사용,
+병합, LARGE `munmap`, realloc 회귀 검사도 반복 검증했습니다.
 
-## Thread Safety Status
+## `show_alloc_mem` 검증
 
-- `malloc`, `free`, and `realloc` protect only the zone they access.
-- `free` and `realloc` use `find_box_and_lock`, then release the acquired zone
-  mutex on every exit path that owns it.
-- `realloc` unlocks before nested `malloc` or `free` calls to avoid recursive
-  locking. It captures `copy_size` while locked and does not read the old tag
-  after releasing the mutex.
-- If a new allocation fails, `realloc` returns `NULL` and preserves the original
-  allocation.
-- `show_alloc_mem` locks all three zones while traversing and printing allocator
-  state.
-- `show_alloc_mem_ex` uses the same all-zone lock while dumping live user areas.
-- `unmap_box` keeps the zone locked, saves the next box and zone type, and calls
-  `munmap` before changing the list. On failure the list remains unchanged; on
-  success it updates either the list head or the previous box link.
+TINY, SMALL, LARGE별 사용 중인 tag의 시작 주소, 끝 주소, `origin_size`,
+전체 요청 크기 합계를 출력합니다. 10, 200, 2000, 0바이트 요청과 여러 box,
+부분 해제, 전체 해제, 빈 목록, 64비트 `size_t` 출력을 검사했습니다.
 
-The `realloc` locking flow passed all 60 basic semantic cases and six stress
-runs totaling 54,000 allocator operations, 720 `show_alloc_mem` calls, and
-179,910 integrity checks, with no deadlocks, crashes, corruption, or stale
-locks.
+현재 `malloc(0)`은 내부에서 1바이트 요청으로 정규화됩니다. `free`는
+`origin_size`를 0으로 만들고 같은 box 안의 인접 해제 tag를 병합합니다.
+box 출력은 `find_next_box`가 전체 목록에서 다음 주소를 다시 찾으므로
+생성 순서와 관계없이 주소 오름차순을 유지합니다.
 
-## Project Progress
+## `show_alloc_mem_ex` 검증
 
-Mandatory implementation and submission verification are complete. The new
-`unmap_box` path passed 176/176 cases covering first, middle, and last box
-removal, plus injected `munmap` failure with list preservation. Actual macOS
-`DYLD` flat-namespace interposition passed with exported `malloc`, `free`,
-`realloc`, and `show_alloc_mem` symbols and boundary-size checks. Official
-Norminette 3.3.59 reported zero Errors and four `GLOBAL_VAR_DETECTED` Notices.
-Bonus work currently includes zone-level thread safety, free-tag coalescing,
-the `show_alloc_mem_ex` hexadecimal dump, and basic invalid/double-free reports
-controlled by `FT_MALLOC_DEBUG=1`. `FT_MALLOC_SCRIBBLE=1` fills newly exposed
-bytes with `0xAA` and released bytes with `0x55`. Within the same TINY/SMALL
-zone, `realloc` can absorb an adjacent free tag, split reusable excess capacity,
-and preserve both the pointer and existing data. Cross-zone growth uses a new
-allocation.
+해제 tag와 정렬 여유 공간을 제외하고 사용 중인 사용자 영역을
+`origin_size`만큼 두 자리 16진수 값으로 출력합니다. 각 행은 최대 16바이트이며 행의
+시작 주소를 함께 표시합니다.
 
-## show_alloc_mem 검증
+1, 15, 16, 17바이트 경계, TINY/SMALL/LARGE 동시 출력, 해제된 할당
+제외, realloc 전후 데이터 보존을 검사했습니다. 6개 작업 스레드가 실행당
+2,400회의 malloc/realloc/free를 수행하면서 출력을 호출하는 스트레스도
+10회 반복해 통과했습니다.
 
-기초 구현은 TINY/SMALL/LARGE별 사용 중인 tag의 시작·끝 주소와 `origin_size`, 전체 요청 크기 합계를 출력합니다. `malloc(10)`, `malloc(200)`, `malloc(2000)`, `malloc(0)`, 같은 zone의 연속 할당, 여러 box, 중간 및 전체 `free`, 빈 목록, 64-bit `size_t` 출력을 검사했으며 컴파일과 런타임 검증을 통과했습니다.
+## 할당 기록
 
-현재 `malloc(0)`은 내부에서 1 byte 요청으로 정규화되어 `origin_size`도 1로 출력됩니다. `free()`는 tag를 free 상태로 바꾸면서 `origin_size`를 0으로 되돌리고, 같은 box 안에서 앞뒤로 맞닿은 free tag를 병합합니다. LARGE 요청은 현재 재사용 가능한 tag 탐색 대상에서 제외되어 매번 새 box를 확보하고, split도 수행하지 않으며, 해제 후 box 전체가 비면 box list에서 제거한 뒤 `munmap`합니다. TINY/SMALL box도 전체가 비고 같은 zone에 다른 box가 남아 있으면 `munmap` 대상이 됩니다.
-
-각 zone의 box 출력은 `find_next_box`가 직전에 선택한 주소보다 큰 box 중 `uintptr_t` 기준 최솟값을 전체 box list에서 다시 찾는 방식입니다. 따라서 box 생성 순서나 `mmap` 반환 순서와 관계없이 주소 오름차순으로 선택하며, 해당 zone의 box 수를 n이라 할 때 O(n^2) 시간과 O(1) 추가 메모리를 사용합니다. 이 과정은 임시 allocation을 만들거나 `t_box`에 출력 여부 플래그를 추가하지 않습니다. empty/one/five/mixed/tail 선택과 결정적 주소 오름차순 출력은 각각 5회 반복 검사를 통과했습니다.
-
-## show_alloc_mem_ex 검증
-
-`show_alloc_mem_ex`는 free tag와 정렬 여유 공간을 제외하고, 사용 중인
-user area를 `origin_size`만큼 두 자리 hexadecimal 값으로 출력합니다.
-각 행은 최대 16바이트이며 행의 시작 주소를 함께 표시합니다.
-
-1, 15, 16, 17바이트 경계, TINY/SMALL/LARGE 동시 출력, free된 allocation
-제외, realloc 전후 데이터 보존과 총합을 검사했습니다. 6개 worker가 실행당
-2,400회의 malloc/realloc/free를 수행하는 동안 확장 출력을 80회 호출하는
-스트레스를 10회 반복했고, 교착·손상·stale lock 없이 10/10 통과했습니다.
-공식 Norminette 3.3.59는 Error 0건과 전역변수 Notice 4건을 보고했습니다.
-
-## Allocation history
-
-`FT_MALLOC_HISTORY`의 값이 정확히 `1`일 때 allocation history를 기록합니다.
-환경변수가 없거나 다른 값이면 기록과 history 출력은 수행하지 않습니다.
+`FT_MALLOC_HISTORY`의 값이 정확히 `1`일 때 할당 기록을 저장합니다.
+환경변수가 없거나 다른 값이면 기록과 출력은 수행하지 않습니다.
 
 ```sh
 FT_MALLOC_HISTORY=1 ./program
 ```
 
-history는 동적 할당 없이 `g_malloc` 내부의 256개 고정 크기 원형 배열에
-저장됩니다. 각 항목은 증가하는 sequence 번호, 이벤트 type, 이전 포인터,
-새 포인터와 사용자가 요청한 크기를 보관합니다. 배열이 가득 차면 가장 오래된
-항목부터 덮어쓰며, 출력할 때는 현재 남아 있는 기록을 오래된 순서부터
-순회합니다.
+할당 기록은 동적 할당 없이 `g_malloc` 내부의 256개 고정 크기 원형 배열에
+저장됩니다. 각 항목은 순번, 이벤트 종류, 이전 포인터, 새 포인터,
+요청 크기를 보관합니다. 배열이 가득 차면 가장 오래된 기록부터 덮어쓰고,
+출력할 때는 남아 있는 기록을 오래된 순서부터 순회합니다.
 
-`malloc`, `free`, `realloc`의 성공 경로가 각각 이벤트를 기록합니다.
-새 allocation으로 이동하는 `realloc`은 내부에서 `malloc`과 `free`를
-호출하므로, 이 두 상세 이벤트와 최종 `realloc` 이벤트가 함께 남을 수
-있습니다. 이는 내부 동작까지 보존하는 현재 history 정책입니다.
+`malloc`, `free`, `realloc` 성공 경로가 각각 이벤트를 기록합니다. 이동하는
+`realloc`은 내부에서 `malloc`과 `free`를 호출하므로 상세 이벤트와 최종
+`realloc` 이벤트가 함께 남을 수 있습니다.
 
-history 배열은 zone mutex와 분리된 전용 history mutex로 보호됩니다.
-`show_alloc_mem_ex`는 allocator의 hexadecimal dump를 마친 뒤 zone mutex를
-해제하고, 마지막에 history mutex를 사용해 기록을 출력합니다.
+환경변수 활성화와 비활성화, realloc의 제자리 변경·이동·크기 0, 600개
+이벤트의 원형 배열 순환, 8개 작업 스레드의 동시 기록을 검사했습니다.
 
-환경변수 활성화/비활성화, realloc의 제자리 변경·이동·size 0, 600개
-이벤트의 256개 ring wrap과 8개 worker 동시 기록을 각각 10회 검사했습니다.
-모든 실행에서 오래된 `#344`부터 최신 `#599`까지 순서대로 출력됐으며,
-교착, timeout 또는 tag 연결 손상은 없었습니다.
+## malloc 디버그 환경변수
 
-## malloc debug 환경변수
-
-`FT_MALLOC_DEBUG`의 값이 정확히 `1`일 때만 `free` 오류를 표준 오류로
-출력합니다. 환경변수가 없거나 다른 값이면 기존처럼 오류 포인터를 조용히
-무시합니다.
+`FT_MALLOC_DEBUG`가 정확히 `1`일 때만 `free` 오류를 표준 오류로 출력합니다.
 
 ```sh
 FT_MALLOC_DEBUG=1 ./program
 ```
 
-allocator의 box 밖 주소와 box 안의 잘못된 중간 주소는 `invalid free`로,
-아직 관리 중인 free tag를 다시 해제하면 `double free`로 출력합니다. Debug
-비활성 상태의 출력 0바이트와 활성 상태의 두 invalid free 및 한 double free를
-실제 shared library로 확인했습니다.
+할당자 box 밖의 주소와 할당 시작점이 아닌 주소는 `invalid free`로,
+이미 해제된 tag를 다시 해제하면 `double free`로 출력합니다.
 
-`FT_MALLOC_SCRIBBLE=1`은 새 allocation을 `0xAA`로 채우고 정상 free에서
-metadata를 지우기 전에 user area를 `0x55`로 채웁니다. 제자리 realloc은
-확장된 꼬리를 `0xAA`, 축소로 소유권을 잃은 꼬리를 `0x55`로 채웁니다.
-새 allocation이 필요한 realloc은 먼저 전체를 `0xAA`로 채운 뒤 기존 내용을
-복사하므로 새로 늘어난 부분에는 `0xAA`가 남습니다.
+`FT_MALLOC_SCRIBBLE=1`은 새 할당을 `0xAA`로 채우고 정상 `free`에서
+사용자 영역을 `0x55`로 채웁니다. 제자리 realloc 확장 영역은 `0xAA`, 축소로
+소유권을 잃은 영역은 `0x55`로 채웁니다.
 
 ```sh
 FT_MALLOC_SCRIBBLE=1 ./program
 ```
 
-17바이트 malloc/free의 `0xAA`/`0x55` 패턴, capacity 안의 realloc 확장과
-축소, 새 allocation을 사용하는 확장, DEBUG와 SCRIBBLE 환경변수의 독립성을
-실제 shared library로 확인했습니다.
+17바이트 malloc/free, realloc 확장과 축소, 새 할당을 사용하는 확장,
+DEBUG와 SCRIBBLE 환경변수의 독립성을 공유 라이브러리로 확인했습니다.
 
-향후 debug 후보는 다음과 같습니다.
+향후 디버그 후보는 다음과 같습니다.
 
-- `FT_MALLOC_ABORT_ON_ERROR=1`: invalid free 또는 double free를 출력한 뒤
-  `abort()`하여 debugger가 정확한 실패 지점에서 멈추게 합니다.
+- `FT_MALLOC_ABORT_ON_ERROR=1`: `invalid free` 또는 `double free`를 출력한 뒤
+  `abort()`해 디버거가 실패 지점에서 멈추도록 하는 기능
